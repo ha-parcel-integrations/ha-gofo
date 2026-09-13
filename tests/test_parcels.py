@@ -34,7 +34,9 @@ from .payloads import (
     DELIVERED_CODE,
     active_sample,
     delivered_sample,
+    fr_awaiting_pickup_sample,
     fr_delivered_sample,
+    fr_problem_sample,
     it_transit_sample,
     us_event,
 )
@@ -53,6 +55,9 @@ from .payloads import (
         ("202", ParcelStatus.IN_TRANSIT),
         ("203", ParcelStatus.IN_TRANSIT),
         ("208", ParcelStatus.OUT_FOR_DELIVERY),
+        ("204", ParcelStatus.PROBLEM),
+        ("206", ParcelStatus.PROBLEM),
+        ("LS004", ParcelStatus.AT_PICKUP_POINT),
         ("205", ParcelStatus.DELIVERED),
     ],
 )
@@ -296,6 +301,23 @@ def test_normalize_fr_delivered_parcel():
     assert parcel["status"] == ParcelStatus.DELIVERED
     assert parcel["delivered"] is True
     assert parcel["url"].startswith("https://www.gofo.com/fr/")
+
+
+def test_normalize_ls004_is_at_pickup_point_and_sets_pickup_flag():
+    """LS004 ('Arrived at pickup facility') confirmed live 2026-09-13."""
+    parcel = normalize_parcel(fr_awaiting_pickup_sample())
+    assert parcel["status"] == ParcelStatus.AT_PICKUP_POINT
+    assert parcel["pickup"] is True
+    # processLocation is a city, never a named pickup point on this carrier.
+    assert parcel["pickup_point"] is None
+
+
+def test_normalize_206_is_problem_not_returning():
+    """Delivery-failure processCodes (204/206) never say the parcel is headed back."""
+    parcel = normalize_parcel(fr_problem_sample())
+    assert parcel["status"] == ParcelStatus.PROBLEM
+    assert parcel["pickup"] is False
+    assert parcel["delivered"] is False
 
 
 def test_normalize_pending_placeholder():

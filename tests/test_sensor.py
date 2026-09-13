@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 
 from custom_components.gofo.const import ParcelStatus
 from custom_components.gofo.sensor import (
+    GOFOExpressAwaitingPickupSensor,
     GOFOExpressDeliveredParcelsSensor,
     GOFOExpressIncomingParcelsSensor,
     GOFOExpressLastUpdateSensor,
@@ -85,6 +86,16 @@ def test_next_delivery_skips_unparseable_moment():
     ])
     sensor = GOFOExpressNextDeliverySensor(coordinator, _entry())
     assert sensor.extra_state_attributes["barcode"] == "B"
+
+
+def test_awaiting_pickup_sensor_counts_only_pickup_flagged_parcels():
+    coordinator = _coordinator([
+        _parcel("A", status=ParcelStatus.AT_PICKUP_POINT, pickup=True),
+        _parcel("B", status=ParcelStatus.IN_TRANSIT, pickup=False),
+    ])
+    sensor = GOFOExpressAwaitingPickupSensor(coordinator, _entry())
+    assert sensor.native_value == 1
+    assert sensor.extra_state_attributes["parcels"][0]["barcode"] == "A"
 
 
 def test_delivered_sensor():

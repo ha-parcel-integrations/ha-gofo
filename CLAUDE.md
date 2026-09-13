@@ -35,12 +35,11 @@ you act in one of these areas:
   summary+diagnostic sensors. Add a new non-parcel sensor's unique_id to the set.
 - **Per-parcel sensors are removed by the summary sensor** via
   `entity_registry.async_remove` (self-removal races and leaves ghosts).
-- **If this carrier can reach `ParcelStatus.AT_PICKUP_POINT` from a real raw
-  status/code**, it needs an `awaiting_pickup` sensor — see *Parcel contract*
-  in `CONVENTIONS.md`. Say "pickup point", not "ServicePoint"/"parcel
-  shop"/"locker", for the generic concept. `ha-dhl-nl`, `ha-dpd`, `ha-gls`,
-  `ha-inpost` are reference implementations; `gofo` here does not
-  demonstrate it yet.
+- **This carrier reaches `ParcelStatus.AT_PICKUP_POINT` from a confirmed real
+  processCode** (`LS004`, "Arrived at pickup facility"), so it ships
+  `sensor.gofo_express_awaiting_pickup` — see *Parcel contract* in
+  `CONVENTIONS.md`. Say "pickup point", not "ServicePoint"/"parcel
+  shop"/"locker", for the generic concept.
 
 ## Carrier-specific notes
 
@@ -63,6 +62,14 @@ logs a one-shot warning at add-time so this doesn't fail silently.
   first (`lastTrackEvent`, falling back to `trackEventList[0]`) and only
   falls back to the coarse item `status` string when the processCode is
   missing/unmapped. Both are one-shot-warned the same way when unrecognised.
+- **`204`/`206` are `PROBLEM`, not `RETURNING`.** Confirmed live on a real IT
+  parcel: `204` ("back to sorting center, contact customer service to confirm
+  a new delivery") and `206` ("delivery failed: incorrect address") both ask
+  the recipient/sender to act — neither says the parcel is actually being
+  sent back — so they map to the exception status, not the return-to-sender
+  one. `LS004` ("Arrived at pickup facility") is `AT_PICKUP_POINT`; its
+  `processLocation` is a city, not a named pickup point, so `pickup_point`
+  stays `None` even for this status.
 - **`trackEventList` is newest-first on both transports.** `build_history()`
   reverses it to the suite's oldest-to-newest contract — this is the one
   ordering trap the research doc called out explicitly.

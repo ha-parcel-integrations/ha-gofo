@@ -168,3 +168,71 @@ def fr_delivered_sample(code: str = FR_DELIVERED_CODE) -> dict:
         }
     )
     return sample
+
+
+def fr_awaiting_pickup_sample(code: str = FR_DELIVERED_CODE) -> dict:
+    """A transport-B (FR) parcel whose latest event is ``LS004`` (pickup facility).
+
+    Redacted from a real recipient-authorised ``GFFR…`` capture, 2026-09-13:
+    the exact event confirming the ``LS004`` -> AT_PICKUP_POINT mapping.
+    """
+    sample = it_transit_sample(code)
+    events = [
+        {
+            "processDate": "2026-09-02T06:07:02.000+0200",
+            "processContent": "Arrived at pickup facility",
+            "processLocation": "Some City",
+            "processCode": "LS004",
+            "mainContent": "Arrived at pickup facility",
+            "subContent": None,
+            "trackStatus": "2",
+        },
+        *sample["trackEventList"],
+    ]
+    sample.update(
+        {
+            "status": "Transit",
+            "frCountry": "FR",
+            "toCountry": "FR",
+            "trackEventCount": len(events),
+            "lastTrackEvent": events[0],
+            "trackEventList": events,
+        }
+    )
+    return sample
+
+
+def fr_problem_sample(code: str = FR_DELIVERED_CODE) -> dict:
+    """A transport-B (FR/IT-shaped) parcel whose latest event is an exception (``204``/``206``).
+
+    Redacted from a real recipient-authorised ``GFIT…`` capture, 2026-09-13:
+    a delivery-failure branch ("incorrect address") confirming ``206`` (and,
+    by the same capture, ``204``) map to PROBLEM, not RETURNING.
+    """
+    sample = it_transit_sample(code)
+    events = [
+        {
+            "processDate": "2026-09-10T08:00:00.000+0200",
+            "processContent": (
+                "Delivery failed, type: Incorrect address. Please check GOFO "
+                "emails for a form to update recipient details."
+            ),
+            "processLocation": "Some City",
+            "processCode": "206",
+            "mainContent": "Delivery failed, type: Incorrect address",
+            "subContent": None,
+            "trackStatus": "2",
+        },
+        *sample["trackEventList"],
+    ]
+    sample.update(
+        {
+            "status": "Transit",
+            "frCountry": "FR",
+            "toCountry": "FR",
+            "trackEventCount": len(events),
+            "lastTrackEvent": events[0],
+            "trackEventList": events,
+        }
+    )
+    return sample

@@ -39,15 +39,28 @@ NEW_ISSUE_URL = (
 
 # Confirmed on both transports 2026-09-13 (US, IT, FR real parcels): a single
 # processCode vocabulary shared across every country. 208/205 are the only
-# terminal-adjacent/terminal codes seen; "Alert" and "Returned" (and their
-# processCodes) are unseen on any transport and must stay unknown.
+# terminal-adjacent/terminal codes seen on the original happy-path capture;
+# "Returned" (and its processCode) is still unseen on any transport and must
+# stay unknown.
+#
+# 2026-09-13: 204/206/LS004 confirmed live on a real, recipient-authorised FR
+# parcel (IT for 204/206) that hit an exception branch — "back to sorting
+# center" and "delivery failed: incorrect address" are both PROBLEM, not
+# RETURNING, since neither says the parcel is actually headed back to the
+# sender (both ask the recipient/sender to act, e.g. confirm a new delivery
+# or correct the address). LS004 ("Arrived at pickup facility") is
+# AT_PICKUP_POINT; its processLocation is a city name, not a named pickup
+# point, so pickup_point stays unpopulated per CAPABILITIES.
 _PROCESS_CODE_MAP: dict[str, ParcelStatus] = {
     "100": ParcelStatus.REGISTERED,
     "200": ParcelStatus.IN_TRANSIT,
     "201": ParcelStatus.IN_TRANSIT,
     "202": ParcelStatus.IN_TRANSIT,
     "203": ParcelStatus.IN_TRANSIT,
+    "204": ParcelStatus.PROBLEM,
+    "206": ParcelStatus.PROBLEM,
     "208": ParcelStatus.OUT_FOR_DELIVERY,
+    "LS004": ParcelStatus.AT_PICKUP_POINT,
     "205": ParcelStatus.DELIVERED,
 }
 
@@ -261,7 +274,7 @@ def normalize_parcel(raw: dict, *, include_history: bool = False) -> dict:
         "delivered_at": to_iso_timestamp(_delivered_event_date(raw)) if delivered else None,
         "planned_from": None,
         "planned_to": None,
-        "pickup": False,
+        "pickup": status is ParcelStatus.AT_PICKUP_POINT,
         "pickup_point": None,
         "url": tracking_url(tracking_code, country),
         "weight": raw.get("weight"),
