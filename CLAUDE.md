@@ -73,13 +73,23 @@ logs a one-shot warning at add-time so this doesn't fail silently.
 - **`trackEventList` is newest-first on both transports.** `build_history()`
   reverses it to the suite's oldest-to-newest contract — this is the one
   ordering trap the research doc called out explicitly.
-- **No delivery window, ever.** `estimatedArrivalTime` (transport A) and
-  `expectedDeliveryTime`/`edtStartTime`/`edtEndTime` (transport B) were null
-  on every parcel observed on any market. `planned_from`/`planned_to` stay
-  `None` unconditionally — do not wire them up until a fixture actually
-  proves the field's format. `CAPABILITIES` is `{weight, url, history}` only:
-  no `dimensions`, `delivery_window` or `pickup_point` — neither transport
-  has ever populated any of those.
+- **No delivery window, ever — but watch for it.** `estimatedArrivalTime`
+  (transport A) and `expectedDeliveryTime`/`edtStartTime`/`edtEndTime`
+  (transport B) were null on every parcel observed on any market.
+  `planned_from`/`planned_to` stay `None` unconditionally — do not wire them
+  up until a fixture actually proves the field's format. `parcels.py`'s
+  `warn_eta_field_arrived()` logs a one-shot warning (which keys arrived,
+  never the value) the first time any of those fields comes back non-null.
+  `CAPABILITIES` is `{weight, url, history}` only: no `dimensions`,
+  `delivery_window` or `pickup_point` — neither transport has ever populated
+  any of those.
+- **`weight` is kg-as-float confirmed on US/IT/FR only.** The two real
+  fixtures (`0.6030`, `0.5900`) are the only evidence for the unit and type;
+  CA/ES/NL have never returned a real payload, so their weight shape is
+  assumed, not confirmed, same as their status map.
+  `parcels.py`'s `normalize_weight()` coerces defensively (never trusts the
+  raw type) and logs a one-shot warning if a non-numeric value ever shows
+  up.
 - **CA/ES/NL are transport-confirmed, payload-unconfirmed.** Both transports'
   not-found envelope and routing are proven for all six countries, but a real
   parcel has only ever been seen for US/IT/FR. `parcels.py`'s
@@ -125,9 +135,8 @@ not add one back in, even once the format is confirmed.
 There is no user-facing polling interval — this is a deliberate suite-wide
 choice, not a gap. `coordinator.py`'s `_hottest_tier_minutes` /
 `_next_update_interval` recompute `update_interval` at the end of every
-refresh. `gofo/coordinator.py` is the canonical implementation
-every carrier mirrors; the design rationale (quiet window, tiers, stagger,
-backoff, delivered-skip) is spelled out below.
+refresh; the design rationale (quiet window, tiers, stagger, backoff,
+delivered-skip) is spelled out below.
 
 - **Quiet window:** no polling 00:00–06:00 local time, except two daily
   anchors (~00:00 and ~06:00) for overnight / end-of-day catch-up.
@@ -193,6 +202,6 @@ python -m pytest tests/ --cov=custom_components.gofo
 ```
 
 Coverage must stay **above 95%** (silver `test-coverage` rule). Run before
-committing. A code change updates the README + this file + `docs/` in the same
-commit; the API reference lives in your own private research notes, never in
-this repo.
+committing. A code change updates the README + this file in the same commit;
+the API reference lives in your own private research notes, never in this
+repo.

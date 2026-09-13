@@ -423,10 +423,10 @@ async def test_fires_registered_event_for_new_parcel(hass):
 
 
 async def test_delivery_time_changed_event_never_fires_without_an_eta(hass):
-    """GOFO never populates planned_from/planned_to (BUILD_PLAN.md section 3) —
-    the ETA fields were null on every observed parcel on both transports, so
-    the generic delivery-time-changed machinery must stay silent even across
-    a status change."""
+    """GOFO never populates planned_from/planned_to — the ETA fields were
+    null on every observed parcel on both transports, so the generic
+    delivery-time-changed machinery must stay silent even across a status
+    change."""
     entry = _entry_with([{CONF_TRACKING_CODE: ACTIVE_CODE}])
     entry.add_to_hass(hass)
     client = AsyncMock()

@@ -181,6 +181,29 @@ async def test_unroutable_code_returns_none_without_a_request():
     session.post.assert_not_called()
 
 
+async def test_unroutable_code_warns_once_per_code_not_every_poll(caplog):
+    """config_flow already warns once at add-time; this is the fetch-time
+    backstop, and it must not spam the log on every poll forever."""
+    session = MagicMock()
+    client = GOFOExpressApiClient(session)
+
+    await client.async_get_parcel("STILLNOTGOFOSHAPED")
+    await client.async_get_parcel("STILLNOTGOFOSHAPED")
+    await client.async_get_parcel("STILLNOTGOFOSHAPED")
+
+    assert caplog.text.count("no recognised country prefix") == 1
+
+
+async def test_unroutable_warning_is_tracked_independently_per_code(caplog):
+    session = MagicMock()
+    client = GOFOExpressApiClient(session)
+
+    await client.async_get_parcel("BADCODEONE")
+    await client.async_get_parcel("BADCODETWO")
+
+    assert caplog.text.count("no recognised country prefix") == 2
+
+
 async def test_ca_code_routes_to_transport_a():
     session = _session_returning(200, _transport_a_envelope([{"waybillNo": "GFCA0001"}], error={}))
     client = GOFOExpressApiClient(session)

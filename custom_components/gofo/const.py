@@ -63,27 +63,13 @@ CAPABILITIES = frozenset({"weight", "url", "history"})
 # GOFO is a country-split code carrier: a tracking code is
 # ``GF<CC><digits>``, and the two-letter country right after ``GF`` picks
 # both the transport and the tracking deep link. There is no single global
-# endpoint — a code is only found on the transport for its own country.
-#
-# Transport A ("cnee-api", Nuxt, US/CA): keyless JSON POST, single-item
-# ``numberList``, ``User-Time-Zone`` header. Envelope:
-#   {"success", "code", "msg", "failCode", "failReason",
-#    "data": {"success": [...], "error": {...}}}
-# An empty ``data.success`` with a populated ``data.error`` (keyed by country
-# prefix) is track-not-found — never HTTP-level.
-#
-# Transport B ("queryTrackV2", WordPress cirro-tracking plugin, IT/FR/ES/NL):
-# keyless JSON POST, single-item ``numberList``, ``lang`` header. Envelope:
-#   {"msg", "code", "data": [...]}
-# with ``data`` a direct array; an empty array is track-not-found, confirmed
-# live as ``{"msg":"Operation successful","code":200,"data":[]}``.
-#
-# Both families are mutually exclusive per country (cnee-api 404s on the
-# transport-B countries; queryTrackV2 405s on /ca/) — see
-# carrier-research/gofo/gofo.md for the full write-up. Never call
+# endpoint — a code is only found on the transport for its own country. The
+# two transports are mutually exclusive per country (a transport-A URL 404s
+# for a transport-B country and vice versa). Never call
 # ``.../cnee-api/consignee/track/dsp`` or
 # ``.../open-api/official/deliveryAddress/query`` — both are POD/address
-# routes and out of scope.
+# routes and out of scope; see api.py for the envelope shapes each transport
+# actually returns.
 TRANSPORT_A_URL = "https://www.gofo.com/{cc}/cnee-api/consignee/track/query"
 TRANSPORT_B_URL = "https://www.gofo.com/{cc}/open-api/official/track/queryTrackV2"
 TRACKING_URL = "https://www.gofo.com/{cc}/track?number={tracking_code}"

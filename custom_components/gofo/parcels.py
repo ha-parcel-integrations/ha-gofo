@@ -78,6 +78,20 @@ _ITEM_STATUS_MAP: dict[str, ParcelStatus] = {
 # logged only once per HA session instead of on every poll.
 _unmapped_logged: set[str] = set()
 _unconfirmed_country_logged: set[str] = set()
+_eta_field_logged = False
+_weight_shape_logged = False
+
+# The four fields observed to always be null on every payload seen so far,
+# on either transport. ``normalize_parcel`` never reads these into
+# ``planned_from``/``planned_to`` — a delivery window has never been proven
+# to have a stable format, so wiring it up would be a guess. This list only
+# drives the one-shot detection warning below.
+_ETA_FIELDS = (
+    "estimatedArrivalTime",  # transport A
+    "expectedDeliveryTime",  # transport B
+    "edtStartTime",  # transport B
+    "edtEndTime",  # transport B
+)
 
 
 def _warn_unmapped(kind: str, value: str) -> None:
@@ -100,11 +114,11 @@ def warn_unconfirmed_country(country: str) -> None:
     """Log once per country: a payload arrived for a transport-only-confirmed market.
 
     CA, ES and NL have only ever returned a fictitious code's not-found
-    envelope (see carrier-research/gofo/gofo.md) — their status map and
-    item-field optionality are unverified until a real parcel actually comes
-    back. This fires the first time one does, so the map can be confirmed
-    from an issue report rather than assumed correct. Privacy-safe: logs
-    only the country, never the tracking code.
+    envelope — their status map and item-field optionality are unverified
+    until a real parcel actually comes back. This fires the first time one
+    does, so the map can be confirmed from an issue report rather than
+    assumed correct. Privacy-safe: logs only the country, never the tracking
+    code.
     """
     if country in _unconfirmed_country_logged:
         return
@@ -117,6 +131,59 @@ def warn_unconfirmed_country(country: str) -> None:
         country,
         NEW_ISSUE_URL,
     )
+
+
+def warn_eta_field_arrived(keys: list[str]) -> None:
+    """Log once, ever: a delivery-window field finally came back non-null.
+
+    Every ETA-capable field has been null on every payload observed so far,
+    on both transports, so ``planned_from``/``planned_to`` are never
+    populated from them. This fires the first time that stops being true, so
+    the field's format can be confirmed from an issue report before wiring it
+    up. Privacy-safe: logs only which keys arrived, never their values (a
+    delivery window can narrow down a home address).
+    """
+    global _eta_field_logged
+    if _eta_field_logged:
+        return
+    _eta_field_logged = True
+    _LOGGER.warning(
+        "GOFO Express returned a non-null delivery-window field (%s) for the "
+        "first time — planned_from/planned_to are not populated from it yet. "
+        "Please open an issue and paste this line (without the value) so the "
+        "format can be confirmed: %s",
+        ", ".join(keys),
+        NEW_ISSUE_URL,
+    )
+
+
+def normalize_weight(value: object) -> float | None:
+    """Coerce the raw ``weight`` field to a float, or ``None``.
+
+    Kilograms-as-float is confirmed on US, IT and FR real payloads
+    (``0.6030``, ``0.5900``); CA/ES/NL have never returned a real parcel so
+    their weight unit/type is assumed, not confirmed — see
+    ``UNCONFIRMED_COUNTRIES``. Coerce defensively rather than trust the type,
+    and warn once if a value shows up that isn't already a plain number.
+    """
+    global _weight_shape_logged
+    if value is None:
+        return None
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return float(value)
+    if not _weight_shape_logged:
+        _weight_shape_logged = True
+        _LOGGER.warning(
+            "GOFO Express returned a non-numeric weight value — help us "
+            "confirm the shape. Open an issue and paste this line: %s\n"
+            "  weight type=%s -> reported as unknown/dropped",
+            NEW_ISSUE_URL,
+            type(value).__name__,
+        )
+    try:
+        return float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
 
 
 def map_process_code(code: str | None) -> ParcelStatus | None:
@@ -250,7 +317,9 @@ def normalize_parcel(raw: dict, *, include_history: bool = False) -> dict:
     ``expectedDeliveryTime``/``edtStartTime``/``edtEndTime`` on transport B)
     were null on every observed parcel, so ``planned_from``/``planned_to``
     stay unpopulated — do not wire them up until a fixture actually proves
-    their format (BUILD_PLAN.md section 3).
+    their format. The first time any of those fields comes back non-null,
+    :func:`warn_eta_field_arrived` logs a one-shot warning so that fixture
+    can be requested.
     """
     from .api import extract_country  # local import: avoids a module cycle
 
@@ -259,6 +328,10 @@ def normalize_parcel(raw: dict, *, include_history: bool = False) -> dict:
     has_payload = bool(raw.get("trackEventList") or raw.get("lastTrackEvent"))
     if country in UNCONFIRMED_COUNTRIES and has_payload:
         warn_unconfirmed_country(country)
+
+    arrived_eta_fields = [key for key in _ETA_FIELDS if raw.get(key) is not None]
+    if arrived_eta_fields:
+        warn_eta_field_arrived(arrived_eta_fields)
 
     status, raw_status = resolve_status(raw)
     delivered = status is ParcelStatus.DELIVERED
@@ -277,7 +350,7 @@ def normalize_parcel(raw: dict, *, include_history: bool = False) -> dict:
         "pickup": status is ParcelStatus.AT_PICKUP_POINT,
         "pickup_point": None,
         "url": tracking_url(tracking_code, country),
-        "weight": raw.get("weight"),
+        "weight": normalize_weight(raw.get("weight")),
         "dimensions": None,
         "history": build_history(raw.get("trackEventList")) if include_history else None,
         "raw": raw,

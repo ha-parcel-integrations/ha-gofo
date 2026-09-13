@@ -2,7 +2,7 @@
 
 GOFO is a country-split code carrier: a tracking code is
 ``GF<CC><digits>``, and ``<CC>`` picks one of two mutually exclusive,
-keyless JSON transports (see ``const.py`` for the full write-up):
+keyless JSON transports:
 
 * Transport A ("cnee-api", US/CA) — envelope
   ``{success, code, msg, failCode, failReason, data: {success: [...], error: {...}}}``.
@@ -36,6 +36,13 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+# Tracking codes we've already warned about having no recognised country
+# prefix, so a bad code logs once instead of on every poll forever.
+# config_flow.py already warns once at add-time; this is the fetch-time
+# backstop for a code added before that check existed, or via the
+# track_parcel service.
+_unroutable_logged: set[str] = set()
 
 
 class GOFOExpressApiError(Exception):
@@ -92,11 +99,14 @@ class GOFOExpressApiClient:
         if country in TRANSPORT_B_COUNTRIES:
             return await self._async_get_transport_b(tracking_code, country)
         # No known country prefix — cannot pick a transport. Not an error:
-        # the code is simply not one GOFO can be asked about.
-        _LOGGER.warning(
-            "GOFO Express tracking code has no recognised country prefix; "
-            "cannot pick a transport"
-        )
+        # the code is simply not one GOFO can be asked about. One-shot per
+        # code so a bad entry doesn't warn on every poll forever.
+        if tracking_code not in _unroutable_logged:
+            _unroutable_logged.add(tracking_code)
+            _LOGGER.warning(
+                "GOFO Express tracking code has no recognised country "
+                "prefix; cannot pick a transport"
+            )
         return None
 
     async def _async_post(
@@ -135,7 +145,7 @@ class GOFOExpressApiClient:
     async def _async_get_transport_a(
         self, tracking_code: str, country: str
     ) -> dict[str, Any] | None:
-        """Query the Nuxt ``cnee-api`` transport (US/CA)."""
+        """Query the ``cnee-api`` transport (US/CA)."""
         url = TRANSPORT_A_URL.format(cc=country.lower())
         headers = {
             "Content-Type": "application/json",
@@ -168,7 +178,7 @@ class GOFOExpressApiClient:
     async def _async_get_transport_b(
         self, tracking_code: str, country: str
     ) -> dict[str, Any] | None:
-        """Query the WordPress ``queryTrackV2`` transport (IT/FR/ES/NL)."""
+        """Query the ``queryTrackV2`` transport (IT/FR/ES/NL)."""
         url = TRANSPORT_B_URL.format(cc=country.lower())
         headers = {
             "Content-Type": "application/json",

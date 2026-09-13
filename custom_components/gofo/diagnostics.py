@@ -12,11 +12,10 @@ from . import GOFOExpressConfigEntry
 # identifies a person, an address or a specific parcel. Over-redacting is
 # cheap; under-redacting leaks a user's home address into a GitHub thread.
 #
-# Per BUILD_PLAN.md section 3: the configured code, both GOFO identifiers
-# (waybillNo is the code itself; trackingNumber is a distinct local-carrier
-# id observed on transport B), city/province/exact location, POD images and
-# the AES ``sign`` value — none of these are needed to debug a status/history
-# issue.
+# Redact the configured code, both GOFO identifiers (waybillNo is the code
+# itself; trackingNumber is a distinct local-carrier id observed on
+# transport B), city/province/exact location, POD images and the AES
+# ``sign`` value — none of these are needed to debug a status/history issue.
 TO_REDACT = {
     # canonical fields we publish ourselves
     "tracking_code",
@@ -27,6 +26,8 @@ TO_REDACT = {
     # carrier payload fields — both transports
     "waybillNo",
     "trackingNumber",
+    "thirdNo",
+    "number",
     "processCity",
     "processProvince",
     "processLocation",

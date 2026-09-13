@@ -13,16 +13,19 @@ def auto_enable_custom_integrations(enable_custom_integrations):
 
 @pytest.fixture(autouse=True)
 def reset_one_shot_warnings():
-    """Clear the "already warned this session" sets between tests.
+    """Clear the "already warned this session" sets/flags between tests.
 
-    ``parcels._unmapped_logged`` and ``parcels._unconfirmed_country_logged``
-    are module-level, so without this a test's one-shot-warning assertion
-    would depend on which test already triggered that code/country first.
+    These are module-level, so without this a test's one-shot-warning
+    assertion would depend on which test already triggered that
+    code/country/field first.
     """
-    from custom_components.gofo import parcels
+    from custom_components.gofo import api, parcels
 
     parcels._unmapped_logged.clear()
     parcels._unconfirmed_country_logged.clear()
+    parcels._eta_field_logged = False
+    parcels._weight_shape_logged = False
+    api._unroutable_logged.clear()
     yield
 
 

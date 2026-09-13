@@ -23,10 +23,13 @@ from custom_components.gofo.parcels import (
     map_item_status,
     map_process_code,
     normalize_parcel,
+    normalize_weight,
     parse_iso,
     resolve_status,
     sort_parcels_by_ts,
     to_iso_timestamp,
+    tracking_url,
+    warn_eta_field_arrived,
 )
 
 from .payloads import (
@@ -244,8 +247,9 @@ def test_capabilities_match_what_normalize_parcel_actually_returns():
     if "history" in CAPABILITIES:
         assert with_history["history"] is not None
     # Never claim what GOFO's payload has never populated on either
-    # transport (BUILD_PLAN.md section 3): dimensions, delivery_window and
-    # pickup_point stay out of CAPABILITIES entirely.
+    # transport: dimensions, delivery_window and pickup_point (LS004's
+    # processLocation is a city, not a named pickup point) stay out of
+    # CAPABILITIES entirely.
     assert "dimensions" not in CAPABILITIES
     assert "delivery_window" not in CAPABILITIES
     assert "pickup_point" not in CAPABILITIES
@@ -432,3 +436,105 @@ def test_delivered_filter_keeps_unparseable_timestamp():
     """Better to show a parcel with a broken date than to silently drop it."""
     parcels = [{"barcode": "WEIRD", "delivered_at": "nonsense"}]
     assert apply_delivered_filter(parcels, _entry("days", 7)) == parcels
+
+
+# ---------------------------------------------------------------------------
+# warn_eta_field_arrived / normalize_weight — carrier-review follow-up
+# ---------------------------------------------------------------------------
+
+
+def test_warn_eta_field_arrived_fires_once_ever(caplog):
+    warn_eta_field_arrived(["estimatedArrivalTime"])
+    warn_eta_field_arrived(["expectedDeliveryTime", "edtStartTime"])
+    assert caplog.text.count("delivery-window field") == 1
+    # Privacy-safe: only the key names are logged, never a value.
+    assert "estimatedArrivalTime" in caplog.text
+
+
+def test_normalize_parcel_warns_once_when_an_eta_field_arrives(caplog):
+    raw = delivered_sample()
+    raw["estimatedArrivalTime"] = "2026-04-29T13:00:00-0700"
+    normalize_parcel(raw)
+    assert "delivery-window field" in caplog.text
+    assert "estimatedArrivalTime" in caplog.text
+
+
+def test_normalize_parcel_silent_when_eta_fields_stay_null(caplog):
+    normalize_parcel(delivered_sample())
+    assert "delivery-window field" not in caplog.text
+
+
+def test_normalize_weight_passes_through_numbers():
+    assert normalize_weight(0.603) == 0.603
+    assert normalize_weight(1) == 1.0
+    assert normalize_weight(None) is None
+
+
+def test_normalize_weight_coerces_numeric_strings_with_warning(caplog):
+    assert normalize_weight("0.59") == 0.59
+    assert "non-numeric weight" in caplog.text
+    assert "str" in caplog.text
+
+
+def test_normalize_weight_warns_once_and_drops_unparseable_value(caplog):
+    assert normalize_weight({"kg": 1}) is None
+    assert normalize_weight("not-a-number") is None
+    assert caplog.text.count("non-numeric weight") == 1
+
+
+def test_normalize_weight_rejects_bool_as_not_a_plain_number(caplog):
+    """``bool`` is an ``int`` subclass in Python — must not silently pass as a weight."""
+    assert normalize_weight(True) == 1.0
+    assert "non-numeric weight" in caplog.text
+
+
+# ---------------------------------------------------------------------------
+# small branch coverage: tracking_url, build_history, delivered-event fallback
+# ---------------------------------------------------------------------------
+
+
+def test_tracking_url_none_without_a_code():
+    assert tracking_url(None, "US") is None
+
+
+def test_build_history_keeps_unparseable_timestamp_last():
+    history = build_history(
+        [
+            {"processDate": "not-a-date", "processCode": "100", "processContent": "odd"},
+            us_event("205", "2025-10-16T13:54:05.000-0700", "Delivered"),
+        ]
+    )
+    assert history[-1]["raw_status"] == "odd"
+
+
+def test_delivered_at_falls_back_to_last_track_event_without_a_205_entry():
+    """Delivered via the coarse item-status fallback, with no 205 event in the list."""
+    raw = {
+        "waybillNo": "GFUS00000000",
+        "status": "Delivered",
+        "lastTrackEvent": {
+            "processCode": "999",  # unmapped -> falls back to item status "Delivered"
+            "processDate": "2025-10-16T13:54:05.000-0700",
+            "processContent": "mystery",
+        },
+        "trackEventList": [
+            {
+                "processCode": "999",
+                "processDate": "2025-10-16T13:54:05.000-0700",
+                "processContent": "mystery",
+            }
+        ],
+    }
+    parcel = normalize_parcel(raw)
+    assert parcel["delivered"] is True
+    assert parcel["delivered_at"] is not None
+
+
+def test_delivered_at_none_without_any_event_data():
+    raw = {"waybillNo": "GFUS00000000", "status": "Delivered"}
+    parcel = normalize_parcel(raw)
+    # No processCode anywhere and no lastTrackEvent -> resolve_status can
+    # still report DELIVERED from the coarse item status, but there is no
+    # event date at all to report as delivered_at.
+    assert parcel["delivered"] is True
+    assert parcel["delivered_at"] is None

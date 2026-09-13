@@ -1,9 +1,8 @@
 """Sample GOFO Express API payloads shared by the test modules.
 
 These are redacted from real, recipient-authorised captures against both
-confirmed transports on 2026-09-13 (see carrier-research/gofo/api/ —
-private, never copied here): a delivered US parcel (transport A, cnee-api)
-and an in-transit IT parcel (transport B, queryTrackV2). Tracking/waybill
+transports on 2026-09-13: a delivered US parcel (transport A, cnee-api) and
+an in-transit IT parcel (transport B, queryTrackV2). Tracking/waybill
 numbers, city/province and exact processLocation were replaced with
 placeholders; the event count, processCode sequence and offset-aware
 timestamp shapes are otherwise unchanged.

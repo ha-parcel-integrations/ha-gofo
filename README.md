@@ -37,8 +37,8 @@ Part of the [ha-parcel-integrations](https://github.com/ha-parcel-integrations) 
 
 - Track any number of GOFO Express parcels by tracking code — no account needed
 - Covers all six GOFO markets (US, CA, IT, FR, ES, NL) — the country is read straight from the tracking code, nothing to select
-- Per-parcel sensor with the canonical status (`registered` / `in_transit` / `out_for_delivery` / `delivered` / `unknown`), the carrier's own status text and a tracking deep-link
-- Summary sensors: incoming parcels, next delivery, recently delivered parcels
+- Per-parcel sensor with the canonical status (`registered` / `in_transit` / `out_for_delivery` / `at_pickup_point` / `delivered` / `problem` / `unknown`), the carrier's own status text and a tracking deep-link
+- Summary sensors: incoming parcels, next delivery, parcels awaiting pickup, recently delivered parcels
 - Read-only **Deliveries** calendar (see the note below — GOFO has never returned an expected-delivery window, so this is always empty for now)
 - `gofo.track_parcel` / `gofo.untrack_parcel` services, so a dashboard button can add a parcel
 - Events + device triggers for no-code automations (parcel registered, status changed, delivered)
@@ -100,6 +100,7 @@ Standard HA removal applies: **Settings → Devices & Services → GOFO Express 
 | `sensor.gofo_express_incoming_parcels` | Number of active tracked parcels, full list under the `parcels` attribute |
 | `sensor.gofo_express_parcel_<code>` | One per tracked parcel; state is the canonical status, attributes carry the full normalised parcel |
 | `sensor.gofo_express_next_delivery` | Earliest expected delivery moment across all active parcels (always unavailable today — see the note above) |
+| `sensor.gofo_express_awaiting_pickup` | Number of parcels currently waiting to be collected (`at_pickup_point`), full list under the `parcels` attribute |
 | `sensor.gofo_express_delivered_parcels` | Recently delivered parcels (see the retention option) |
 | `sensor.gofo_express_last_successful_update` | Diagnostic: when GOFO Express was last polled successfully |
 
@@ -114,8 +115,10 @@ The `status` field is the carrier-agnostic enum shared by the whole integration 
 | `registered` | Shipping label created, not yet handed to GOFO's network (`processCode` 100) |
 | `in_transit` | Regional hub / delivery-station network scan (`processCode` 200/201/202/203) |
 | `out_for_delivery` | On a delivery vehicle today (`processCode` 208) |
+| `at_pickup_point` | Arrived at a pickup facility (`processCode` LS004) — no named pickup point is reported, only the status |
 | `delivered` | Delivered (`processCode` 205) |
-| `unknown` | Not yet scanned, or a `processCode`/status GOFO hasn't reported yet (an "Alert" or "Returned" state is known to exist in the UI but has never been seen live — please [open an issue](https://github.com/ha-parcel-integrations/ha-gofo/issues/new) if you hit one) |
+| `problem` | An exception that asks the recipient/sender to act, e.g. back-to-sorting-center or an incorrect address (`processCode` 204/206) |
+| `unknown` | Not yet scanned, or a `processCode`/status GOFO hasn't reported yet (a "Returned" state is known to exist in the UI but has never been seen live — please [open an issue](https://github.com/ha-parcel-integrations/ha-gofo/issues/new) if you hit one) |
 
 The carrier's own human-readable text is always available as `raw_status`.
 
