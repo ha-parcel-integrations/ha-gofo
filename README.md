@@ -11,7 +11,7 @@ A custom Home Assistant integration that tracks your [GOFO Express](https://www.
 
 > **Pre-1.0:** Canada, Spain and the Netherlands are confirmed to exist on the right backend, but no real parcel from those three markets has ever been checked — only a fictitious code's "not found" response. Their status mapping is unverified until a real parcel proves it; the log will warn once if this affects you. US, Italy and France are confirmed against real, delivered/in-transit parcels.
 
-Part of the [ha-parcel-integrations](https://ha-parcel-integrations.io) family: it publishes the same canonical parcel format, statuses and events as the other carrier integrations, so it plugs straight into the [Parcel Aggregator](https://github.com/ha-parcel-integrations/ha-parcel-aggregator) and cross-carrier automations.
+Part of the [ha-parcel-integrations](https://ha-parcel-integrations.github.io/) family: it publishes the same canonical parcel format, statuses and events as the other carrier integrations, so it plugs straight into the [Parcel Aggregator](https://github.com/ha-parcel-integrations/ha-parcel-aggregator) and cross-carrier automations.
 
 ## Contents
 
@@ -168,13 +168,13 @@ logger:
 
 ## Related integrations
 
-This integration is part of [**ha-parcel-integrations**](https://ha-parcel-integrations.io) — a family of
+This integration is part of [**ha-parcel-integrations**](https://ha-parcel-integrations.github.io/) — a family of
 parcel-carrier integrations that all publish the same canonical parcel format,
 statuses and events.
 
 - [**Parcel Aggregator**](https://github.com/ha-parcel-integrations/ha-parcel-aggregator) rolls every installed carrier
   up into one set of sensors.
-- Browse [the organisation](https://ha-parcel-integrations.io) for the current list of supported carriers.
+- Browse [the organisation](https://ha-parcel-integrations.github.io/) for the current list of supported carriers.
 
 ## Disclaimer
 
