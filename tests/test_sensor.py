@@ -111,3 +111,10 @@ def test_last_update_sensor():
     coordinator.last_success_time = moment
     sensor = GOFOExpressLastUpdateSensor(coordinator, _entry())
     assert sensor.native_value == moment
+
+
+def test_awaiting_pickup_counts_rerouted_parcel_without_pickup_flag():
+    rerouted = _parcel("REROUTED", status=ParcelStatus.AT_PICKUP_POINT)
+    sensor = GOFOExpressAwaitingPickupSensor(_coordinator([rerouted, _parcel("HOME")]), _entry())
+    assert sensor.native_value == 1
+    assert sensor.extra_state_attributes["parcels"] == [rerouted]
