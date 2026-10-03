@@ -100,7 +100,7 @@ logs a one-shot warning at add-time so this doesn't fail silently.
   real parcel.
 - **Do not build:** POD image or delivery-coordinate retrieval on either
   stack (`.../track/dsp`, `.../deliveryAddress/query`, inline `podImgList`);
-  the AES-encrypted `queryTrackV2` branch or `sign`-header signing; inbox
+  any encrypted or signed request variant of `queryTrackV2`; inbox
   discovery, code enumeration, batch lookup, or any write endpoint. The
   observed `queryTrackV2` response is plaintext JSON and that is the only
   path this integration uses.
