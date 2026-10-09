@@ -17,6 +17,7 @@ ACTIVE_CODE = "GFUS01011000000001"
 DELIVERED_CODE = "GFUS01011000000002"
 IT_TRANSIT_CODE = "GFIT26085000000001"
 FR_DELIVERED_CODE = "GFFR26083000000001"
+NL_REGISTERED_CODE = "GFNL26100000000001"
 
 
 def us_event(process_code: str, process_date: str, content: str, *, city=None) -> dict:
@@ -232,6 +233,39 @@ def fr_problem_sample(code: str = FR_DELIVERED_CODE) -> dict:
             "trackEventCount": len(events),
             "lastTrackEvent": events[0],
             "trackEventList": events,
+        }
+    )
+    return sample
+
+
+def nl_registered_sample(code: str = NL_REGISTERED_CODE) -> dict:
+    """A transport-B (NL) parcel registered but not yet picked up.
+
+    Redacted from a real ``GFNL…`` diagnostics dump attached to issue #3,
+    2026-10-09: a single Dutch-language ``100`` event, item status
+    ``Processing`` and an empty-string ``processLocation``.
+    """
+    event = {
+        "processDate": "2026-10-09T12:20:37.000Z",
+        "processContent": "Zending nog niet ontvangen of verwerkt",
+        "processLocation": "",
+        "processCode": "100",
+        "mainContent": "Zending nog niet ontvangen of verwerkt",
+        "subContent": None,
+        "trackStatus": "2",
+    }
+    sample = it_transit_sample(code)
+    sample.update(
+        {
+            "status": "Processing",
+            "trackingNumber": "BG-2610099D000000",
+            "frCountry": "NL",
+            "toCountry": "NL",
+            "weight": 0.4,
+            "createTime": "2026-10-09T14:20:38.000+0200",
+            "trackEventCount": 1,
+            "lastTrackEvent": event,
+            "trackEventList": [event],
         }
     )
     return sample

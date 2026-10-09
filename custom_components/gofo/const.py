@@ -86,11 +86,11 @@ TRANSPORT_B_COUNTRIES = frozenset({"IT", "FR", "ES", "NL"})
 KNOWN_COUNTRIES = TRANSPORT_A_COUNTRIES | TRANSPORT_B_COUNTRIES
 
 # Transport and not-found envelope are confirmed for all six countries, but
-# these three have never returned a populated payload — only a fictitious
+# these two have never returned a populated payload — only a fictitious
 # code's not-found branch. Do not treat their status map or item-field
 # optionality as verified; parcels.py logs a one-shot pre-1.0 WARNING the
 # first time one of these actually returns data.
-UNCONFIRMED_COUNTRIES = frozenset({"CA", "ES", "NL"})
+UNCONFIRMED_COUNTRIES = frozenset({"CA", "ES"})
 
 # lang header sent on transport B, per country.
 TRANSPORT_B_LANG = {"IT": "it", "FR": "fr", "ES": "es", "NL": "nl"}

@@ -9,7 +9,7 @@
 
 A custom Home Assistant integration that tracks your [GOFO Express](https://www.gofo.com) (CIRRO Parcel) parcels. No account is needed — you enter the tracking code yourself, just like on the GOFO Express website. GOFO ships in the US, Canada, Italy, France, Spain and the Netherlands; the two-letter country right after `GF` in the tracking code (`GF<CC>…`) picks the right backend automatically.
 
-> ⚠️ **Pre-1.0 release.** Canada, Spain and the Netherlands are confirmed to exist on the right backend, but no real parcel from those three markets has ever been checked — only a fictitious code's "not found" response. Their status mapping is unverified until a real parcel proves it; the log will warn once if this affects you. US, Italy and France are confirmed against real, delivered/in-transit parcels.
+> ⚠️ **Pre-1.0 release.** Canada and Spain are confirmed to exist on the right backend, but no real parcel from those two markets has ever been checked — only a fictitious code's "not found" response. Their status mapping is unverified until a real parcel proves it; the log will warn once if this affects you. US, Italy and France are confirmed against real, delivered/in-transit parcels; the Netherlands against a real parcel that was registered but not yet picked up.
 
 Part of the [ha-parcel-integrations](https://ha-parcel-integrations.github.io/) family: it publishes the same canonical parcel format, statuses and events as the other carrier integrations, so it plugs straight into the [Parcel Aggregator](https://github.com/ha-parcel-integrations/ha-parcel-aggregator) and cross-carrier automations.
 

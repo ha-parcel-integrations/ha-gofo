@@ -41,6 +41,7 @@ from .payloads import (
     fr_delivered_sample,
     fr_problem_sample,
     it_transit_sample,
+    nl_registered_sample,
     us_event,
 )
 
@@ -83,13 +84,14 @@ def test_map_process_code_unmapped_warns_once(caplog):
 
 
 def test_map_item_status_known_values():
-    """Only Delivered (US/FR) and Transit (IT) have ever been observed live."""
+    """Delivered (US/FR), Transit (IT) and Processing (NL) were observed live."""
     assert map_item_status("Delivered") == ParcelStatus.DELIVERED
     assert map_item_status("Transit") == ParcelStatus.IN_TRANSIT
+    assert map_item_status("Processing") == ParcelStatus.REGISTERED
 
 
 def test_map_item_status_unseen_values_stay_unknown_with_warning(caplog):
-    """Processing/Alert/Returned are unseen on either transport."""
+    """Alert/Returned are unseen on either transport."""
     assert map_item_status("Alert") == ParcelStatus.UNKNOWN
     assert "Alert" in caplog.text
     assert "issues/new" in caplog.text
@@ -349,7 +351,7 @@ def test_normalize_unroutable_code_has_no_url():
 
 
 def test_normalize_warns_once_for_unconfirmed_country_payload(caplog):
-    """CA/ES/NL are transport-confirmed only — a real payload must warn once."""
+    """CA/ES are transport-confirmed only — a real payload must warn once."""
     raw = it_transit_sample()
     raw["waybillNo"] = "GFES26085000000099"
     normalize_parcel(raw)
@@ -361,7 +363,18 @@ def test_normalize_warns_once_for_unconfirmed_country_payload(caplog):
 def test_normalize_does_not_warn_for_confirmed_countries(caplog):
     normalize_parcel(delivered_sample())  # US
     normalize_parcel(it_transit_sample())  # IT
+    normalize_parcel(nl_registered_sample())  # NL
     assert "unverified" not in caplog.text
+
+
+def test_normalize_nl_registered_parcel(caplog):
+    parcel = normalize_parcel(nl_registered_sample())
+    assert parcel["status"] == ParcelStatus.REGISTERED
+    assert parcel["raw_status"] == "Zending nog niet ontvangen of verwerkt"
+    assert parcel["weight"] == 0.4
+    assert parcel["url"].startswith("https://www.gofo.com/nl/")
+    assert parcel["planned_from"] is None
+    assert caplog.text == ""
 
 
 def test_normalize_placeholder_does_not_warn_for_unconfirmed_country(caplog):

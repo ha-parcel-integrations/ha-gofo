@@ -65,11 +65,12 @@ _PROCESS_CODE_MAP: dict[str, ParcelStatus] = {
 }
 
 # Item-level ``status`` is a coarse UI fallback, only consulted when the
-# latest event's processCode is missing or unmapped. Only "Delivered"
-# (US/FR) and "Transit" (IT) have ever been observed live; "Processing",
-# "Alert" and "Returned" are unseen on either transport and must stay
-# unknown, same as an unmapped processCode.
+# latest event's processCode is missing or unmapped. "Delivered" (US/FR),
+# "Transit" (IT) and "Processing" (NL, paired with processCode 100) have
+# been observed live; "Alert" and "Returned" are unseen on either transport
+# and must stay unknown, same as an unmapped processCode.
 _ITEM_STATUS_MAP: dict[str, ParcelStatus] = {
+    "Processing": ParcelStatus.REGISTERED,
     "Delivered": ParcelStatus.DELIVERED,
     "Transit": ParcelStatus.IN_TRANSIT,
 }
@@ -113,7 +114,7 @@ def _warn_unmapped(kind: str, value: str) -> None:
 def warn_unconfirmed_country(country: str) -> None:
     """Log once per country: a payload arrived for a transport-only-confirmed market.
 
-    CA, ES and NL have only ever returned a fictitious code's not-found
+    CA and ES have only ever returned a fictitious code's not-found
     envelope — their status map and item-field optionality are unverified
     until a real parcel actually comes back. This fires the first time one
     does, so the map can be confirmed from an issue report rather than
@@ -160,8 +161,8 @@ def warn_eta_field_arrived(keys: list[str]) -> None:
 def normalize_weight(value: object) -> float | None:
     """Coerce the raw ``weight`` field to a float, or ``None``.
 
-    Kilograms-as-float is confirmed on US, IT and FR real payloads
-    (``0.6030``, ``0.5900``); CA/ES/NL have never returned a real parcel so
+    Kilograms-as-float is confirmed on US, IT, FR and NL real payloads
+    (``0.6030``, ``0.5900``, ``0.4``); CA/ES have never returned a real parcel so
     their weight unit/type is assumed, not confirmed — see
     ``UNCONFIRMED_COUNTRIES``. Coerce defensively rather than trust the type,
     and warn once if a value shows up that isn't already a plain number.

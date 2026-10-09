@@ -83,20 +83,21 @@ logs a one-shot warning at add-time so this doesn't fail silently.
   `CAPABILITIES` is `{weight, url, history}` only: no `dimensions`,
   `delivery_window` or `pickup_point` — neither transport has ever populated
   any of those.
-- **`weight` is kg-as-float confirmed on US/IT/FR only.** The two real
-  fixtures (`0.6030`, `0.5900`) are the only evidence for the unit and type;
-  CA/ES/NL have never returned a real payload, so their weight shape is
+- **`weight` is kg-as-float confirmed on US/IT/FR/NL only.** The real
+  fixtures (`0.6030`, `0.5900`, `0.4`) are the only evidence for the unit and type;
+  CA/ES have never returned a real payload, so their weight shape is
   assumed, not confirmed, same as their status map.
   `parcels.py`'s `normalize_weight()` coerces defensively (never trusts the
   raw type) and logs a one-shot warning if a non-numeric value ever shows
   up.
-- **CA/ES/NL are transport-confirmed, payload-unconfirmed.** Both transports'
+- **CA/ES are transport-confirmed, payload-unconfirmed.** Both transports'
   not-found envelope and routing are proven for all six countries, but a real
-  parcel has only ever been seen for US/IT/FR. `parcels.py`'s
+  parcel has only been seen for US/IT/FR/NL (NL: a registered-only parcel,
+  processCode `100` with item status `Processing`). `parcels.py`'s
   `warn_unconfirmed_country()` logs once per country the first time a
-  populated payload actually arrives for CA, ES or NL, so the status map can
+  populated payload actually arrives for CA or ES, so the status map can
   be confirmed from an issue report instead of assumed correct. Do not
-  promote these three out of `UNCONFIRMED_COUNTRIES` in `const.py` without a
+  promote these two out of `UNCONFIRMED_COUNTRIES` in `const.py` without a
   real parcel.
 - **Do not build:** POD image or delivery-coordinate retrieval on either
   stack (`.../track/dsp`, `.../deliveryAddress/query`, inline `podImgList`);
