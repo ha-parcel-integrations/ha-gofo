@@ -149,7 +149,7 @@ class GOFOExpressApiClient:
         url = TRANSPORT_A_URL.format(cc=country.lower())
         headers = {
             "Content-Type": "application/json",
-            "User-Time-Zone": TRANSPORT_A_TIME_ZONE.get(country, "UTC"),
+            "User-Time-Zone": TRANSPORT_A_TIME_ZONE,
         }
         payload = await self._async_post(url, tracking_code, headers)
 

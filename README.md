@@ -182,6 +182,7 @@ logger:
 ## Troubleshooting
 
 - **A parcel shows `unknown`** — GOFO Express has not scanned it yet (their API answers `not_found` until the first scan), or the code is wrong. It will pick up automatically once scanned.
+- **US/CA scan times** are recorded in Pacific time. They carry the correct UTC offset, so they show correctly in your own timezone.
 - **A status logs "Unrecognised GOFO Express status"** — please [open an issue](https://github.com/ha-parcel-integrations/ha-gofo/issues/new) with the logged line so the mapping can be extended.
 
 ## Related integrations

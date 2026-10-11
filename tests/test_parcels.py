@@ -156,6 +156,63 @@ def test_parse_iso_garbage_and_none():
     assert parse_iso(None) is None
 
 
+def test_parse_iso_wall_clock_zone_ignores_the_stamped_offset():
+    """Transport A stamps -0700 on a clock converted to the requested zone."""
+    parsed = parse_iso("2025-10-16T10:54:05.000-0700", wall_clock_zone="America/Los_Angeles")
+    assert parsed.utcoffset() == timedelta(hours=-7)
+    assert parsed.astimezone(timezone.utc) == datetime(2025, 10, 16, 17, 54, 5, tzinfo=timezone.utc)
+
+
+def test_parse_iso_wall_clock_zone_follows_winter_time():
+    """A stamped -0700 on a January clock is still Pacific Standard Time."""
+    parsed = parse_iso("2026-01-15T10:00:00.000-0700", wall_clock_zone="America/Los_Angeles")
+    assert parsed.utcoffset() == timedelta(hours=-8)
+    assert parsed.astimezone(timezone.utc) == datetime(2026, 1, 15, 18, 0, tzinfo=timezone.utc)
+
+
+def test_parse_iso_without_wall_clock_zone_trusts_the_offset():
+    parsed = parse_iso("2026-03-31T12:28:21.000+0200")
+    assert parsed.astimezone(timezone.utc) == datetime(2026, 3, 31, 10, 28, 21, tzinfo=timezone.utc)
+
+
+def test_us_timestamps_are_read_in_the_requested_zone():
+    """Regression: a New York clock under a Pacific stamp used to land 3h late.
+
+    The fixture is the Los Angeles-clock response for a real US parcel; the
+    delivery scan at 10:54 Pacific is 17:54 UTC.
+    """
+    parcel = normalize_parcel(delivered_sample(), include_history=True)
+    delivered_at = parse_iso(parcel["delivered_at"])
+    assert delivered_at.astimezone(timezone.utc) == datetime(
+        2025, 10, 16, 17, 54, 5, tzinfo=timezone.utc
+    )
+    assert parcel["history"][-1]["timestamp"] == "2025-10-16T10:54:05-07:00"
+
+
+def test_winter_us_parcel_gets_standard_time_in_delivered_at_and_history():
+    raw = delivered_sample()
+    for event in [raw["lastTrackEvent"], *raw["trackEventList"]]:
+        event["processDate"] = event["processDate"].replace("2025-10", "2026-01")
+    parcel = normalize_parcel(raw, include_history=True)
+    assert parcel["delivered_at"] == "2026-01-16T10:54:05-08:00"
+    assert parcel["history"][-1]["timestamp"] == "2026-01-16T10:54:05-08:00"
+
+
+def test_canadian_timestamps_use_the_same_zone_as_us():
+    raw = delivered_sample("GFCA01011000000009")
+    parcel = normalize_parcel(raw)
+    assert parcel["delivered_at"] == "2025-10-16T10:54:05-07:00"
+
+
+def test_transport_b_keeps_the_carriers_own_offset():
+    """IT/FR stamp a correct, DST-aware offset — no zone override there."""
+    parcel = normalize_parcel(fr_delivered_sample(), include_history=True)
+    assert parcel["delivered_at"].endswith(("+01:00", "+02:00"))
+    assert parcel["delivered_at"] == parse_iso(
+        fr_delivered_sample()["trackEventList"][0]["processDate"]
+    ).isoformat()
+
+
 def test_to_iso_timestamp_round_trips():
     assert to_iso_timestamp("2025-10-16T13:54:05.000-0700") is not None
     assert to_iso_timestamp(None) is None

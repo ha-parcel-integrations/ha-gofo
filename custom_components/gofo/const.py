@@ -95,10 +95,15 @@ UNCONFIRMED_COUNTRIES = frozenset({"CA", "ES"})
 # lang header sent on transport B, per country.
 TRANSPORT_B_LANG = {"IT": "it", "FR": "fr", "ES": "es", "NL": "nl"}
 
-# Display timezone sent on transport A's User-Time-Zone header. Not carrier
-# behaviour we depend on (the response's own processDate is offset-aware
-# regardless) — just what the official client sends.
-TRANSPORT_A_TIME_ZONE = {"US": "America/New_York", "CA": "America/Toronto"}
+# Timezone sent on transport A's User-Time-Zone header. The server converts
+# the clock of every processDate/createTime to this zone but always stamps the
+# result with a fixed Pacific offset (-0700), whatever zone was asked for, so
+# the stamp cannot be trusted unless the clock is already Pacific. Pacific is
+# the zone the carrier records events in (each event's own processTimeZone),
+# and parcels.py reads the clock in this zone instead of the stamp. One zone
+# for US and CA on purpose: Toronto or New York would put a correct clock under
+# a wrong label.
+TRANSPORT_A_TIME_ZONE = "America/Los_Angeles"
 
 # Tracked parcels live in the config entry options as a list of
 # ``{tracking_code}`` dicts — this carrier has no account or parcel feed, so the

@@ -89,7 +89,20 @@ async def test_transport_a_returns_item_on_success():
     url, kwargs = session.post.call_args
     assert url[0] == "https://www.gofo.com/us/cnee-api/consignee/track/query"
     assert kwargs["json"] == {"numberList": [US_CODE]}
-    assert kwargs["headers"]["User-Time-Zone"]
+    assert kwargs["headers"]["User-Time-Zone"] == "America/Los_Angeles"
+
+
+async def test_transport_a_sends_the_same_zone_for_canada():
+    item = {"waybillNo": "GFCA0001"}
+    session = _session_returning(200, _transport_a_envelope([item]))
+    await GOFOExpressApiClient(session).async_get_parcel("GFCA0001")
+    assert session.post.call_args[1]["headers"]["User-Time-Zone"] == "America/Los_Angeles"
+
+
+async def test_transport_b_sends_no_time_zone_header():
+    session = _session_returning(200, {"code": 200, "data": [{"waybillNo": IT_CODE}]})
+    await GOFOExpressApiClient(session).async_get_parcel(IT_CODE)
+    assert "User-Time-Zone" not in session.post.call_args[1]["headers"]
 
 
 async def test_transport_a_not_found_via_populated_error():

@@ -70,6 +70,28 @@ logs a one-shot warning at add-time so this doesn't fail silently.
   one. `LS004` ("Arrived at pickup facility") is `AT_PICKUP_POINT`; its
   `processLocation` is a city, not a named pickup point, so `pickup_point`
   stays `None` even for this status.
+- **Transport A's offset stamp is a lie; read the clock, not the label.**
+  `cnee-api` converts every `processDate`/`createTime` clock to whatever
+  `User-Time-Zone` it is sent but always stamps the result `-0700`. The same
+  event is `13:54:05-0700` for New York, `10:54:05-0700` for Los Angeles and
+  `19:54:05-0700` for Amsterdam, so trusting the label puts a New York clock
+  under a Pacific stamp, silently wrong by 3 hours. Two measures, both kept:
+  `const.TRANSPORT_A_TIME_ZONE` is `America/Los_Angeles` for **US and CA**
+  (the zone the carrier records events in; with no header at all the server
+  answers in that same clock, and each event's own `processTimeZone` says it),
+  and `parcels.parse_iso(..., wall_clock_zone=)` reads transport A's
+  wall clock in that zone and discards the stamped offset. The second half
+  is deliberate belt-and-braces: only an October (PDT) clock has been
+  observed, so whether the stamp ever becomes `-0800` in winter is unknown;
+  reading the wall clock is right under either answer, and a zone-only fix
+  would be an hour off all winter if the stamp is literal. Never send New
+  York or Toronto here: the clock would be correct but the label wrong,
+  which is exactly the bug. Transport B ignores `User-Time-Zone` entirely
+  and stamps a correct, DST-aware offset (`+0100` before and `+0200` after
+  the March change, in the same parcel), so it keeps its own offset and gets
+  no `wall_clock_zone`. `CA` is unconfirmed (no real parcel), so the
+  assumption that it behaves like US is unverified. The US fixtures in
+  `tests/payloads.py` are the Los Angeles-clock responses.
 - **`trackEventList` is newest-first on both transports.** `build_history()`
   reverses it to the suite's oldest-to-newest contract — this is the one
   ordering trap the research doc called out explicitly.

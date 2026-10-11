@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from homeassistant.config_entries import ConfigEntry
 
@@ -20,6 +21,8 @@ from .const import (
     DEFAULT_DELIVERED_FILTER_TYPE,
     HISTORY_MAX_EVENTS,
     TRACKING_URL,
+    TRANSPORT_A_COUNTRIES,
+    TRANSPORT_A_TIME_ZONE,
     UNCONFIRMED_COUNTRIES,
     ParcelStatus,
 )
@@ -233,15 +236,16 @@ def resolve_status(raw: dict) -> tuple[ParcelStatus, str | None]:
     return map_item_status(item_status), item_status
 
 
-def parse_iso(value: str | None) -> datetime | None:
+def parse_iso(value: str | None, *, wall_clock_zone: str | None = None) -> datetime | None:
     """Parse GOFO's ``processDate``/``createTime`` (ISO with an explicit offset).
 
-    Both transports stamp with an explicit numeric offset (``-0700`` on
-    transport A, ``+0100``/``+0200`` on transport B) rather than a ``Z`` or a
-    colon-separated offset — ``datetime.fromisoformat`` handles both forms
-    directly on Python's current parser. Naive values (should not occur, but
-    never trust a carrier absolutely) are treated as UTC so a mixed list
-    always sorts without crashing.
+    Transport B stamps a correct numeric offset (``+0100``/``+0200``) and
+    ``datetime.fromisoformat`` handles that form directly. Transport A does
+    not: it converts the clock to the requested ``User-Time-Zone`` but stamps
+    a fixed ``-0700`` regardless, so pass ``wall_clock_zone`` to read the
+    clock in the zone that was asked for and drop the stamped offset. Naive
+    values (should not occur, but never trust a carrier absolutely) are
+    treated as UTC so a mixed list always sorts without crashing.
     """
     if not value:
         return None
@@ -249,19 +253,26 @@ def parse_iso(value: str | None) -> datetime | None:
         parsed = datetime.fromisoformat(str(value))
     except ValueError:
         return None
+    if wall_clock_zone is not None:
+        return parsed.replace(tzinfo=ZoneInfo(wall_clock_zone))
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=timezone.utc)
     return parsed
 
 
-def to_iso_timestamp(value: str | None) -> str | None:
-    """Return an ISO 8601 string for a GOFO offset-aware timestamp field."""
-    parsed = parse_iso(value)
+def to_iso_timestamp(
+    value: str | None, *, wall_clock_zone: str | None = None
+) -> str | None:
+    """Return an ISO 8601 string for a GOFO timestamp field."""
+    parsed = parse_iso(value, wall_clock_zone=wall_clock_zone)
     return parsed.isoformat() if parsed else None
 
 
 def build_history(
-    events: list | None, *, max_events: int = HISTORY_MAX_EVENTS
+    events: list | None,
+    *,
+    max_events: int = HISTORY_MAX_EVENTS,
+    wall_clock_zone: str | None = None,
 ) -> list[dict]:
     """Build the canonical ``history`` list from ``trackEventList``.
 
@@ -275,7 +286,8 @@ def build_history(
     for event in events or []:
         if not isinstance(event, dict):
             continue
-        timestamp = to_iso_timestamp(event.get("processDate"))
+        parsed = parse_iso(event.get("processDate"), wall_clock_zone=wall_clock_zone)
+        timestamp = parsed.isoformat() if parsed else None
         entry = {
             "timestamp": timestamp,
             "status": map_process_code(event.get("processCode")),
@@ -284,7 +296,7 @@ def build_history(
         if timestamp is None:
             unparseable.append(entry)
         else:
-            parseable.append((parse_iso(event.get("processDate")), entry))
+            parseable.append((parsed, entry))
     # GOFO's own list is newest-first; sorting by parsed timestamp both
     # reverses it to oldest-first and tolerates a carrier that ever ships it
     # out of order.
@@ -336,6 +348,9 @@ def normalize_parcel(raw: dict, *, include_history: bool = False) -> dict:
 
     status, raw_status = resolve_status(raw)
     delivered = status is ParcelStatus.DELIVERED
+    wall_clock_zone = (
+        TRANSPORT_A_TIME_ZONE if country in TRANSPORT_A_COUNTRIES else None
+    )
 
     return {
         "carrier": "GOFO Express",
@@ -345,7 +360,11 @@ def normalize_parcel(raw: dict, *, include_history: bool = False) -> dict:
         "status": status,
         "raw_status": raw_status,
         "delivered": delivered,
-        "delivered_at": to_iso_timestamp(_delivered_event_date(raw)) if delivered else None,
+        "delivered_at": (
+            to_iso_timestamp(_delivered_event_date(raw), wall_clock_zone=wall_clock_zone)
+            if delivered
+            else None
+        ),
         "planned_from": None,
         "planned_to": None,
         "pickup": status is ParcelStatus.AT_PICKUP_POINT,
@@ -353,7 +372,11 @@ def normalize_parcel(raw: dict, *, include_history: bool = False) -> dict:
         "url": tracking_url(tracking_code, country),
         "weight": normalize_weight(raw.get("weight")),
         "dimensions": None,
-        "history": build_history(raw.get("trackEventList")) if include_history else None,
+        "history": (
+            build_history(raw.get("trackEventList"), wall_clock_zone=wall_clock_zone)
+            if include_history
+            else None
+        ),
         "raw": raw,
     }
 
