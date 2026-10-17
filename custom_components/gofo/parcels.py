@@ -68,6 +68,10 @@ _PROCESS_CODE_MAP: dict[str, ParcelStatus] = {
     "204": ParcelStatus.PROBLEM,
     "206": ParcelStatus.PROBLEM,
     "208": ParcelStatus.OUT_FOR_DELIVERY,
+    # Confirmed live 2026-10-17: "Departed GOFO Regional Hub" and
+    # "In Transit to Next Facility".
+    "411": ParcelStatus.IN_TRANSIT,
+    "412": ParcelStatus.IN_TRANSIT,
     "LS004": ParcelStatus.AT_PICKUP_POINT,
     "205": ParcelStatus.DELIVERED,
 }
