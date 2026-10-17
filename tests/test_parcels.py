@@ -41,6 +41,8 @@ from .payloads import (
     fr_delivered_sample,
     fr_problem_sample,
     it_transit_sample,
+    nl_delivered_sample,
+    nl_out_for_delivery_sample,
     nl_registered_sample,
     nl_transit_sample,
     us_event,
@@ -442,6 +444,24 @@ def test_normalize_nl_transit_parcel(caplog):
     assert parcel["raw_status"] == "Aangekomen in het sorteercentrum"
     assert parcel["planned_from"] is None
     assert parcel["planned_to"] is None
+    assert caplog.text == ""
+
+
+def test_normalize_nl_out_for_delivery_parcel(caplog):
+    """processCode 208 confirmed live on NL, while item status already read Delivered."""
+    parcel = normalize_parcel(nl_out_for_delivery_sample())
+    assert parcel["status"] == ParcelStatus.OUT_FOR_DELIVERY
+    assert parcel["raw_status"] == "Bezorger is onderweg"
+    assert parcel["delivered"] is False
+    assert caplog.text == ""
+
+
+def test_normalize_nl_delivered_parcel(caplog):
+    """processCode 205 confirmed live on NL."""
+    parcel = normalize_parcel(nl_delivered_sample())
+    assert parcel["status"] == ParcelStatus.DELIVERED
+    assert parcel["delivered"] is True
+    assert parcel["delivered_at"] == "2026-10-17T11:48:49+02:00"
     assert caplog.text == ""
 
 

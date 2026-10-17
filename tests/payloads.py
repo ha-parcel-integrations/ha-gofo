@@ -301,3 +301,60 @@ def nl_transit_sample(code: str = NL_REGISTERED_CODE) -> dict:
         }
     )
     return sample
+
+
+def nl_out_for_delivery_sample(code: str = NL_REGISTERED_CODE) -> dict:
+    """The same transport-B (NL) parcel on the van.
+
+    Redacted from the 2026-10-17 diagnostics dump attached to issue #3: a
+    Dutch ``208`` scan on top of the depot scans. The item-level ``status``
+    already read ``Delivered`` at this point, which is why status comes from
+    the processCode and not the item text.
+    """
+    event = {
+        "processDate": "2026-10-17T09:08:39.000+0200",
+        "processContent": "Bezorger is onderweg",
+        "processLocation": "",
+        "processCode": "208",
+        "mainContent": "Bezorger is onderweg",
+        "subContent": None,
+        "trackStatus": "2",
+    }
+    sample = nl_transit_sample(code)
+    events = [event, *sample["trackEventList"]]
+    sample.update(
+        {
+            "status": "Delivered",
+            "trackEventCount": len(events),
+            "lastTrackEvent": event,
+            "trackEventList": events,
+        }
+    )
+    return sample
+
+
+def nl_delivered_sample(code: str = NL_REGISTERED_CODE) -> dict:
+    """The same transport-B (NL) parcel once delivered (processCode 205)."""
+    event = {
+        "processDate": "2026-10-17T11:48:49.000+0200",
+        "processContent": (
+            "Bezorgd op het bezorgadres, PIN: Nee, Deurnummer: - . "
+            "Bij vragen kunt u contact opnemen met GOFO (www.gofo.com/nl)."
+        ),
+        "processLocation": "",
+        "processCode": "205",
+        "mainContent": "Bezorgd op het bezorgadres, PIN: Nee, Deurnummer: - ",
+        "subContent": " Bij vragen kunt u contact opnemen met GOFO (www.gofo.com/nl).",
+        "trackStatus": "6",
+    }
+    sample = nl_out_for_delivery_sample(code)
+    events = [event, *sample["trackEventList"]]
+    sample.update(
+        {
+            "status": "Delivered",
+            "trackEventCount": len(events),
+            "lastTrackEvent": event,
+            "trackEventList": events,
+        }
+    )
+    return sample
