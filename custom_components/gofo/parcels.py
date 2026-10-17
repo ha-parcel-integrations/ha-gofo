@@ -58,7 +58,8 @@ NEW_ISSUE_URL = (
 # 2026-10-16: 100 and 202 re-confirmed on a real NL parcel (issue #3, two
 # dumps of the same shipment), in Dutch wording — the processCode vocabulary
 # is language-independent, which is exactly why the code and not the text is
-# the mapping key.
+# the mapping key. 2026-10-17: 203, 208 and 205 followed on the same parcel,
+# completing the NL happy path.
 _PROCESS_CODE_MAP: dict[str, ParcelStatus] = {
     "100": ParcelStatus.REGISTERED,
     "200": ParcelStatus.IN_TRANSIT,
