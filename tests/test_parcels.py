@@ -42,6 +42,7 @@ from .payloads import (
     fr_problem_sample,
     it_transit_sample,
     nl_registered_sample,
+    nl_transit_sample,
     us_event,
 )
 
@@ -432,6 +433,31 @@ def test_normalize_nl_registered_parcel(caplog):
     assert parcel["url"].startswith("https://www.gofo.com/nl/")
     assert parcel["planned_from"] is None
     assert caplog.text == ""
+
+
+def test_normalize_nl_transit_parcel(caplog):
+    """processCode 202 and item status Transit, both confirmed live on NL."""
+    parcel = normalize_parcel(nl_transit_sample(), include_history=True)
+    assert parcel["status"] == ParcelStatus.IN_TRANSIT
+    assert parcel["raw_status"] == "Aangekomen in het sorteercentrum"
+    assert parcel["planned_from"] is None
+    assert parcel["planned_to"] is None
+    assert caplog.text == ""
+
+
+def test_normalize_nl_history_handles_mixed_offset_and_z_stamps():
+    """Transport B mixes ``Z`` and ``+0200`` stamps in one event list.
+
+    Both forms are real instants, so the reversed history must stay in
+    oldest-to-newest order across them instead of sorting by wall clock.
+    """
+    history = normalize_parcel(nl_transit_sample(), include_history=True)["history"]
+    assert [event["raw_status"] for event in history] == [
+        "Zending nog niet ontvangen of verwerkt",
+        "Aangekomen in het sorteercentrum",
+    ]
+    assert history[0]["timestamp"] == "2026-10-09T12:20:37+00:00"
+    assert history[1]["timestamp"] == "2026-10-16T23:07:52+02:00"
 
 
 def test_normalize_placeholder_does_not_warn_for_unconfirmed_country(caplog):

@@ -54,6 +54,11 @@ NEW_ISSUE_URL = (
 # or correct the address). LS004 ("Arrived at pickup facility") is
 # AT_PICKUP_POINT; its processLocation is a city name, not a named pickup
 # point, so pickup_point stays unpopulated per CAPABILITIES.
+#
+# 2026-10-16: 100 and 202 re-confirmed on a real NL parcel (issue #3, two
+# dumps of the same shipment), in Dutch wording — the processCode vocabulary
+# is language-independent, which is exactly why the code and not the text is
+# the mapping key.
 _PROCESS_CODE_MAP: dict[str, ParcelStatus] = {
     "100": ParcelStatus.REGISTERED,
     "200": ParcelStatus.IN_TRANSIT,
@@ -69,8 +74,8 @@ _PROCESS_CODE_MAP: dict[str, ParcelStatus] = {
 
 # Item-level ``status`` is a coarse UI fallback, only consulted when the
 # latest event's processCode is missing or unmapped. "Delivered" (US/FR),
-# "Transit" (IT) and "Processing" (NL, paired with processCode 100) have
-# been observed live; "Alert" and "Returned" are unseen on either transport
+# "Transit" (IT/NL, paired with processCode 202) and "Processing" (NL, paired
+# with processCode 100) have been observed live; "Alert" and "Returned" are unseen on either transport
 # and must stay unknown, same as an unmapped processCode.
 _ITEM_STATUS_MAP: dict[str, ParcelStatus] = {
     "Processing": ParcelStatus.REGISTERED,
@@ -239,8 +244,11 @@ def resolve_status(raw: dict) -> tuple[ParcelStatus, str | None]:
 def parse_iso(value: str | None, *, wall_clock_zone: str | None = None) -> datetime | None:
     """Parse GOFO's ``processDate``/``createTime`` (ISO with an explicit offset).
 
-    Transport B stamps a correct numeric offset (``+0100``/``+0200``) and
-    ``datetime.fromisoformat`` handles that form directly. Transport A does
+    Transport B stamps a correct offset and ``datetime.fromisoformat``
+    handles every form it uses directly — a numeric ``+0100``/``+0200`` and a
+    ``Z`` for UTC, mixed within a single event list on a real NL parcel
+    (older events ``Z``, the newest ``+0200``, both the same real instant).
+    Transport A does
     not: it converts the clock to the requested ``User-Time-Zone`` but stamps
     a fixed ``-0700`` regardless, so pass ``wall_clock_zone`` to read the
     clock in the zone that was asked for and drop the stamped offset. Naive

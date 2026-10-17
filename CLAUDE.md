@@ -89,7 +89,12 @@ logs a one-shot warning at add-time so this doesn't fail silently.
   which is exactly the bug. Transport B ignores `User-Time-Zone` entirely
   and stamps a correct, DST-aware offset (`+0100` before and `+0200` after
   the March change, in the same parcel), so it keeps its own offset and gets
-  no `wall_clock_zone`. `CA` is unconfirmed (no real parcel), so the
+  no `wall_clock_zone`. It also mixes **two stamp forms in one event list** —
+  a real NL parcel carried its older events as `…T12:20:37.000Z` and its
+  newest as `…T23:07:52.000+0200`, both genuine instants (the `Z` event's
+  clock matches `createTime`'s `+0200` to the second). `fromisoformat`
+  parses both, and `build_history()` reverses rather than sorts, so a mixed
+  list stays in real-time order; never "normalise" one form into the other. `CA` is unconfirmed (no real parcel), so the
   assumption that it behaves like US is unverified. The US fixtures in
   `tests/payloads.py` are the Los Angeles-clock responses.
 - **`trackEventList` is newest-first on both transports.** `build_history()`
@@ -114,8 +119,9 @@ logs a one-shot warning at add-time so this doesn't fail silently.
   up.
 - **CA/ES are transport-confirmed, payload-unconfirmed.** Both transports'
   not-found envelope and routing are proven for all six countries, but a real
-  parcel has only been seen for US/IT/FR/NL (NL: a registered-only parcel,
-  processCode `100` with item status `Processing`). `parcels.py`'s
+  parcel has only been seen for US/IT/FR/NL (NL, from two diagnostics dumps
+  of the same parcel: processCode `100` with item status `Processing`, then
+  `202` with item status `Transit`). `parcels.py`'s
   `warn_unconfirmed_country()` logs once per country the first time a
   populated payload actually arrives for CA or ES, so the status map can
   be confirmed from an issue report instead of assumed correct. Do not

@@ -5,7 +5,9 @@ transports on 2026-09-13: a delivered US parcel (transport A, cnee-api) and
 an in-transit IT parcel (transport B, queryTrackV2). Tracking/waybill
 numbers, city/province and exact processLocation were replaced with
 placeholders; the event count, processCode sequence and offset-aware
-timestamp shapes are otherwise unchanged.
+timestamp shapes are otherwise unchanged. The two NL samples come from the
+diagnostics dumps attached to issue #3 (2026-10-09 and 2026-10-16) and are
+the same real parcel before and after it entered the network.
 
 Keep fixtures in one module rather than inline in each test — when the
 payload shape turns out to need adjusting, there is exactly one place to
@@ -266,6 +268,36 @@ def nl_registered_sample(code: str = NL_REGISTERED_CODE) -> dict:
             "trackEventCount": 1,
             "lastTrackEvent": event,
             "trackEventList": [event],
+        }
+    )
+    return sample
+
+
+def nl_transit_sample(code: str = NL_REGISTERED_CODE) -> dict:
+    """The same transport-B (NL) parcel once it entered the network.
+
+    Redacted from the second ``GFNL…`` diagnostics dump attached to issue #3,
+    2026-10-16: a Dutch-language ``202`` scan on top of the ``100`` label
+    event, item status ``Transit``, and the two events stamped *differently* —
+    the newer one with a numeric ``+0200`` offset, the older one with ``Z``.
+    """
+    event = {
+        "processDate": "2026-10-16T23:07:52.000+0200",
+        "processContent": "Aangekomen in het sorteercentrum",
+        "processLocation": "",
+        "processCode": "202",
+        "mainContent": "Aangekomen in het sorteercentrum",
+        "subContent": None,
+        "trackStatus": "2",
+    }
+    sample = nl_registered_sample(code)
+    events = [event, *sample["trackEventList"]]
+    sample.update(
+        {
+            "status": "Transit",
+            "trackEventCount": len(events),
+            "lastTrackEvent": event,
+            "trackEventList": events,
         }
     )
     return sample
