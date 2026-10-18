@@ -52,7 +52,7 @@ real parcel proves that field's format.
 
 ## Requirements
 
-- Home Assistant 2024.12 or newer
+- Home Assistant 2025.12 or newer
 - A GOFO Express parcel and its tracking code (from the shipping
   confirmation email or the missed-delivery card) — no account needed
 
