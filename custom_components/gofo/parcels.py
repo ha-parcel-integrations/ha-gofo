@@ -246,6 +246,10 @@ def resolve_status(raw: dict) -> tuple[ParcelStatus, str | None]:
     return map_item_status(item_status), item_status
 
 
+# Built once at import: constructing a ZoneInfo reads the tz file from disk.
+_WALL_CLOCK_ZONES = {TRANSPORT_A_TIME_ZONE: ZoneInfo(TRANSPORT_A_TIME_ZONE)}
+
+
 def parse_iso(value: str | None, *, wall_clock_zone: str | None = None) -> datetime | None:
     """Parse GOFO's ``processDate``/``createTime`` (ISO with an explicit offset).
 
@@ -267,7 +271,8 @@ def parse_iso(value: str | None, *, wall_clock_zone: str | None = None) -> datet
     except ValueError:
         return None
     if wall_clock_zone is not None:
-        return parsed.replace(tzinfo=ZoneInfo(wall_clock_zone))
+        zone = _WALL_CLOCK_ZONES.get(wall_clock_zone) or ZoneInfo(wall_clock_zone)
+        return parsed.replace(tzinfo=zone)
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=timezone.utc)
     return parsed
