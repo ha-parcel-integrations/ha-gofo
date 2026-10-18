@@ -271,6 +271,7 @@ def parse_iso(value: str | None, *, wall_clock_zone: str | None = None) -> datet
     except ValueError:
         return None
     if wall_clock_zone is not None:
+        # suite: allow zoneinfo (the only zone used in production is preloaded above)
         zone = _WALL_CLOCK_ZONES.get(wall_clock_zone) or ZoneInfo(wall_clock_zone)
         return parsed.replace(tzinfo=zone)
     if parsed.tzinfo is None:
