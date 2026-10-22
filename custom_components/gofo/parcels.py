@@ -318,7 +318,7 @@ def build_history(
             "status": map_process_code(event.get("processCode")),
             "raw_status": event.get("processContent") or event.get("processCode"),
         }
-        if timestamp is None:
+        if parsed is None:
             unparseable.append(entry)
         else:
             parseable.append((parsed, entry))
