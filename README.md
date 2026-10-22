@@ -62,7 +62,12 @@ real parcel proves that field's format.
 
 1. In HACS, choose the three-dot menu → **Custom repositories**.
 2. Add `https://github.com/ha-parcel-integrations/ha-gofo` as an **Integration**.
-3. Install **GOFO Express** and restart Home Assistant.
+3. Install **GOFO Express**.
+4. Restart Home Assistant if HACS asks you to.
+
+Or click the button below to open it directly in HACS:
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=ha-parcel-integrations&repository=ha-gofo&category=integration)
 
 ### Manual
 
@@ -70,7 +75,9 @@ Copy `custom_components/gofo` into your `config/custom_components/` folder and r
 
 ## Configuration
 
-Add the integration via **Settings → Devices & Services → Add Integration → GOFO Express**. There is nothing to fill in: the hub is created immediately (GOFO Express tracking needs no account).
+[![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=gofo)
+
+Or set it up by hand: add the integration via **Settings → Devices & Services → Add Integration → GOFO Express**. There is nothing to fill in: the hub is created immediately (GOFO Express tracking needs no account).
 
 Then add parcels via the integration's **Configure** dialog, the [`gofo.track_parcel`](#services) service, or a [dashboard button](examples/dashboards/add_parcel_card.yaml). The tracking code is on your shipping confirmation email or the missed-delivery card.
 
