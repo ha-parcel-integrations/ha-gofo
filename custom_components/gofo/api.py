@@ -19,6 +19,7 @@ Non-JSON bodies, malformed envelopes and any 4xx/5xx raise
 :class:`GOFOExpressApiError`; network errors propagate as
 ``aiohttp.ClientError`` for the coordinator to wrap.
 """
+
 from __future__ import annotations
 
 import logging
@@ -121,7 +122,9 @@ class GOFOExpressApiClient:
             if response.status == 429:
                 retry_after_header = response.headers.get("Retry-After")
                 try:
-                    retry_after = float(retry_after_header) if retry_after_header else None
+                    retry_after = (
+                        float(retry_after_header) if retry_after_header else None
+                    )
                 except ValueError:
                     retry_after = None  # an HTTP-date, not seconds; let the caller's own backoff handle it
                 raise GOFOExpressApiError(
@@ -160,7 +163,9 @@ class GOFOExpressApiClient:
                 # Populated data.error keyed by country prefix: semantic
                 # not-found, never an HTTP-level failure.
                 return None
-            raise GOFOExpressApiError(str(payload.get("msg") or "unknown error envelope"))
+            raise GOFOExpressApiError(
+                str(payload.get("msg") or "unknown error envelope")
+            )
 
         data = payload.get("data") or {}
         success_items = data.get("success")
@@ -187,7 +192,9 @@ class GOFOExpressApiClient:
         payload = await self._async_post(url, tracking_code, headers)
 
         if payload.get("code") != 200:
-            raise GOFOExpressApiError(str(payload.get("msg") or "unknown error envelope"))
+            raise GOFOExpressApiError(
+                str(payload.get("msg") or "unknown error envelope")
+            )
 
         data = payload.get("data")
         if not isinstance(data, list) or not data:

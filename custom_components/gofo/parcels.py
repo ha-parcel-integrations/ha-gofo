@@ -6,14 +6,16 @@ carrier-specific mapping (which you rewrite per carrier) apart from the
 coordinator (which is nearly identical everywhere), and it makes the mapping
 trivially unit-testable without spinning up HA.
 """
+
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 import logging
-from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from homeassistant.config_entries import ConfigEntry
 
+from .api import extract_country
 from .const import (
     CONF_DELIVERED_FILTER_AMOUNT,
     CONF_DELIVERED_FILTER_TYPE,
@@ -157,7 +159,7 @@ def warn_eta_field_arrived(keys: list[str]) -> None:
     up. Privacy-safe: logs only which keys arrived, never their values (a
     delivery window can narrow down a home address).
     """
-    global _eta_field_logged
+    global _eta_field_logged  # noqa: PLW0603 - one-shot flag, reset by tests
     if _eta_field_logged:
         return
     _eta_field_logged = True
@@ -180,7 +182,7 @@ def normalize_weight(value: object) -> float | None:
     ``UNCONFIRMED_COUNTRIES``. Coerce defensively rather than trust the type,
     and warn once if a value shows up that isn't already a plain number.
     """
-    global _weight_shape_logged
+    global _weight_shape_logged  # noqa: PLW0603 - one-shot flag, reset by tests
     if value is None:
         return None
     if isinstance(value, (int, float)) and not isinstance(value, bool):
@@ -236,7 +238,9 @@ def resolve_status(raw: dict) -> tuple[ParcelStatus, str | None]:
         events = raw.get("trackEventList")
         last_event = events[0] if isinstance(events, list) and events else {}
 
-    process_code = last_event.get("processCode") if isinstance(last_event, dict) else None
+    process_code = (
+        last_event.get("processCode") if isinstance(last_event, dict) else None
+    )
     mapped = map_process_code(process_code)
     if mapped is not None:
         raw_status = last_event.get("processContent") or process_code
@@ -250,7 +254,9 @@ def resolve_status(raw: dict) -> tuple[ParcelStatus, str | None]:
 _WALL_CLOCK_ZONES = {TRANSPORT_A_TIME_ZONE: ZoneInfo(TRANSPORT_A_TIME_ZONE)}
 
 
-def parse_iso(value: str | None, *, wall_clock_zone: str | None = None) -> datetime | None:
+def parse_iso(
+    value: str | None, *, wall_clock_zone: str | None = None
+) -> datetime | None:
     """Parse GOFO's ``processDate``/``createTime`` (ISO with an explicit offset).
 
     Transport B stamps a correct offset and ``datetime.fromisoformat``
@@ -275,7 +281,7 @@ def parse_iso(value: str | None, *, wall_clock_zone: str | None = None) -> datet
         zone = _WALL_CLOCK_ZONES.get(wall_clock_zone) or ZoneInfo(wall_clock_zone)
         return parsed.replace(tzinfo=zone)
     if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
+        parsed = parsed.replace(tzinfo=UTC)
     return parsed
 
 
@@ -332,7 +338,9 @@ def tracking_url(tracking_code: str | None, country: str | None) -> str | None:
     """
     if not tracking_code:
         return None
-    return TRACKING_URL.format(cc=(country or "us").lower(), tracking_code=tracking_code)
+    return TRACKING_URL.format(
+        cc=(country or "us").lower(), tracking_code=tracking_code
+    )
 
 
 def normalize_parcel(raw: dict, *, include_history: bool = False) -> dict:
@@ -353,8 +361,6 @@ def normalize_parcel(raw: dict, *, include_history: bool = False) -> dict:
     :func:`warn_eta_field_arrived` logs a one-shot warning so that fixture
     can be requested.
     """
-    from .api import extract_country  # local import: avoids a module cycle
-
     tracking_code = raw.get("waybillNo")
     country = extract_country(tracking_code) if tracking_code else None
     has_payload = bool(raw.get("trackEventList") or raw.get("lastTrackEvent"))
@@ -380,7 +386,9 @@ def normalize_parcel(raw: dict, *, include_history: bool = False) -> dict:
         "raw_status": raw_status,
         "delivered": delivered,
         "delivered_at": (
-            to_iso_timestamp(_delivered_event_date(raw), wall_clock_zone=wall_clock_zone)
+            to_iso_timestamp(
+                _delivered_event_date(raw), wall_clock_zone=wall_clock_zone
+            )
             if delivered
             else None
         ),
@@ -448,14 +456,12 @@ def apply_delivered_filter(parcels: list[dict], entry: ConfigEntry) -> list[dict
     shows.
     """
     options = entry.options
-    filter_type = options.get(
-        CONF_DELIVERED_FILTER_TYPE, DEFAULT_DELIVERED_FILTER_TYPE
-    )
+    filter_type = options.get(CONF_DELIVERED_FILTER_TYPE, DEFAULT_DELIVERED_FILTER_TYPE)
     amount = int(
         options.get(CONF_DELIVERED_FILTER_AMOUNT, DEFAULT_DELIVERED_FILTER_AMOUNT)
     )
     if filter_type == "days":
-        cutoff = datetime.now(timezone.utc) - timedelta(days=amount)
+        cutoff = datetime.now(UTC) - timedelta(days=amount)
         return [
             parcel
             for parcel in parcels

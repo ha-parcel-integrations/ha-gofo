@@ -4,7 +4,8 @@ These need no Home Assistant instance — the whole point of keeping
 ``parcels.py`` free of I/O is that the carrier-specific mapping (the part you
 rewrite per carrier) can be tested as plain functions.
 """
-from datetime import datetime, timedelta, timezone
+
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -54,7 +55,7 @@ from .payloads import (
 
 
 @pytest.mark.parametrize(
-    "code,expected",
+    ("code", "expected"),
     [
         ("100", ParcelStatus.REGISTERED),
         ("200", ParcelStatus.IN_TRANSIT),
@@ -151,7 +152,7 @@ def test_parse_iso_handles_us_and_eu_offsets():
 
 
 def test_parse_iso_naive_assumed_utc():
-    assert parse_iso("2026-03-31T12:28:21").tzinfo == timezone.utc
+    assert parse_iso("2026-03-31T12:28:21").tzinfo == UTC
 
 
 def test_parse_iso_garbage_and_none():
@@ -161,21 +162,25 @@ def test_parse_iso_garbage_and_none():
 
 def test_parse_iso_wall_clock_zone_ignores_the_stamped_offset():
     """Transport A stamps -0700 on a clock converted to the requested zone."""
-    parsed = parse_iso("2025-10-16T10:54:05.000-0700", wall_clock_zone="America/Los_Angeles")
+    parsed = parse_iso(
+        "2025-10-16T10:54:05.000-0700", wall_clock_zone="America/Los_Angeles"
+    )
     assert parsed.utcoffset() == timedelta(hours=-7)
-    assert parsed.astimezone(timezone.utc) == datetime(2025, 10, 16, 17, 54, 5, tzinfo=timezone.utc)
+    assert parsed.astimezone(UTC) == datetime(2025, 10, 16, 17, 54, 5, tzinfo=UTC)
 
 
 def test_parse_iso_wall_clock_zone_follows_winter_time():
     """A stamped -0700 on a January clock is still Pacific Standard Time."""
-    parsed = parse_iso("2026-01-15T10:00:00.000-0700", wall_clock_zone="America/Los_Angeles")
+    parsed = parse_iso(
+        "2026-01-15T10:00:00.000-0700", wall_clock_zone="America/Los_Angeles"
+    )
     assert parsed.utcoffset() == timedelta(hours=-8)
-    assert parsed.astimezone(timezone.utc) == datetime(2026, 1, 15, 18, 0, tzinfo=timezone.utc)
+    assert parsed.astimezone(UTC) == datetime(2026, 1, 15, 18, 0, tzinfo=UTC)
 
 
 def test_parse_iso_without_wall_clock_zone_trusts_the_offset():
     parsed = parse_iso("2026-03-31T12:28:21.000+0200")
-    assert parsed.astimezone(timezone.utc) == datetime(2026, 3, 31, 10, 28, 21, tzinfo=timezone.utc)
+    assert parsed.astimezone(UTC) == datetime(2026, 3, 31, 10, 28, 21, tzinfo=UTC)
 
 
 def test_us_timestamps_are_read_in_the_requested_zone():
@@ -186,9 +191,7 @@ def test_us_timestamps_are_read_in_the_requested_zone():
     """
     parcel = normalize_parcel(delivered_sample(), include_history=True)
     delivered_at = parse_iso(parcel["delivered_at"])
-    assert delivered_at.astimezone(timezone.utc) == datetime(
-        2025, 10, 16, 17, 54, 5, tzinfo=timezone.utc
-    )
+    assert delivered_at.astimezone(UTC) == datetime(2025, 10, 16, 17, 54, 5, tzinfo=UTC)
     assert parcel["history"][-1]["timestamp"] == "2025-10-16T10:54:05-07:00"
 
 
@@ -211,9 +214,12 @@ def test_transport_b_keeps_the_carriers_own_offset():
     """IT/FR stamp a correct, DST-aware offset — no zone override there."""
     parcel = normalize_parcel(fr_delivered_sample(), include_history=True)
     assert parcel["delivered_at"].endswith(("+01:00", "+02:00"))
-    assert parcel["delivered_at"] == parse_iso(
-        fr_delivered_sample()["trackEventList"][0]["processDate"]
-    ).isoformat()
+    assert (
+        parcel["delivered_at"]
+        == parse_iso(
+            fr_delivered_sample()["trackEventList"][0]["processDate"]
+        ).isoformat()
+    )
 
 
 def test_to_iso_timestamp_round_trips():
@@ -247,9 +253,7 @@ def test_build_history_handles_missing_and_malformed():
 
 
 def test_build_history_falls_back_to_process_code_without_content():
-    history = build_history(
-        [us_event("100", "2025-10-04T15:53:59.000-0700", "")]
-    )
+    history = build_history([us_event("100", "2025-10-04T15:53:59.000-0700", "")])
     assert history[0]["raw_status"] == "100"
 
 
@@ -531,7 +535,7 @@ def _entry(filter_type: str, amount: int) -> MockConfigEntry:
 
 
 def _delivered_pair() -> list[dict]:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return [
         {"barcode": "RECENT", "delivered_at": (now - timedelta(days=1)).isoformat()},
         {"barcode": "OLD", "delivered_at": (now - timedelta(days=30)).isoformat()},
@@ -616,7 +620,11 @@ def test_tracking_url_none_without_a_code():
 def test_build_history_keeps_unparseable_timestamp_last():
     history = build_history(
         [
-            {"processDate": "not-a-date", "processCode": "100", "processContent": "odd"},
+            {
+                "processDate": "not-a-date",
+                "processCode": "100",
+                "processContent": "odd",
+            },
             us_event("205", "2025-10-16T13:54:05.000-0700", "Delivered"),
         ]
     )

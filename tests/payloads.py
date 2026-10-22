@@ -13,6 +13,7 @@ Keep fixtures in one module rather than inline in each test — when the
 payload shape turns out to need adjusting, there is exactly one place to
 fix it.
 """
+
 from __future__ import annotations
 
 ACTIVE_CODE = "GFUS01011000000001"
@@ -46,14 +47,51 @@ def delivered_sample(code: str = DELIVERED_CODE) -> dict:
     (200/201/202/203) to "Out for Delivery" (208) and "Delivered" (205).
     """
     events = [
-        us_event("205", "2025-10-16T10:54:05.000-0700", "Delivered, Door/Yard", city="Sunnyvale"),
-        us_event("208", "2025-10-16T05:57:20.000-0700", "Out for Delivery", city="Newark"),
-        us_event("203", "2025-10-16T05:52:20.000-0700", "Departed GOFO Delivery Station", city="Newark"),
-        us_event("201", "2025-10-16T05:47:20.000-0700", "Arrived at GOFO Delivery Station", city="Newark"),
-        us_event("200", "2025-10-16T05:42:20.000-0700", "Departed GOFO Regional Hub", city="Newark"),
-        us_event("202", "2025-10-15T13:54:42.000-0700", "Arrived at GOFO Regional Hub", city="Newark"),
-        us_event("200", "2025-10-14T21:04:44.000-0700", "Departed GOFO Regional Hub", city="Vernon"),
-        us_event("202", "2025-10-14T16:25:06.000-0700", "Arrived at GOFO Regional Hub", city="Vernon"),
+        us_event(
+            "205",
+            "2025-10-16T10:54:05.000-0700",
+            "Delivered, Door/Yard",
+            city="Sunnyvale",
+        ),
+        us_event(
+            "208", "2025-10-16T05:57:20.000-0700", "Out for Delivery", city="Newark"
+        ),
+        us_event(
+            "203",
+            "2025-10-16T05:52:20.000-0700",
+            "Departed GOFO Delivery Station",
+            city="Newark",
+        ),
+        us_event(
+            "201",
+            "2025-10-16T05:47:20.000-0700",
+            "Arrived at GOFO Delivery Station",
+            city="Newark",
+        ),
+        us_event(
+            "200",
+            "2025-10-16T05:42:20.000-0700",
+            "Departed GOFO Regional Hub",
+            city="Newark",
+        ),
+        us_event(
+            "202",
+            "2025-10-15T13:54:42.000-0700",
+            "Arrived at GOFO Regional Hub",
+            city="Newark",
+        ),
+        us_event(
+            "200",
+            "2025-10-14T21:04:44.000-0700",
+            "Departed GOFO Regional Hub",
+            city="Vernon",
+        ),
+        us_event(
+            "202",
+            "2025-10-14T16:25:06.000-0700",
+            "Arrived at GOFO Regional Hub",
+            city="Vernon",
+        ),
         us_event("100", "2025-10-04T12:53:59.000-0700", "Shipping Label Created"),
     ]
     return {

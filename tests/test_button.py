@@ -1,4 +1,5 @@
 """Tests for the GOFO Express refresh button."""
+
 from unittest.mock import AsyncMock, MagicMock
 
 from custom_components.gofo.button import GOFOExpressRefreshButton

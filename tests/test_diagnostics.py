@@ -1,10 +1,9 @@
 """Tests for GOFO Express diagnostics."""
+
 from datetime import timedelta
 from unittest.mock import MagicMock
 
-from custom_components.gofo.diagnostics import (
-    async_get_config_entry_diagnostics,
-)
+from custom_components.gofo.diagnostics import async_get_config_entry_diagnostics
 
 
 async def test_diagnostics_redacts_and_counts(hass):
@@ -56,9 +55,18 @@ async def test_diagnostics_redacts_and_counts(hass):
     assert result["incoming"][0]["barcode"] == "**REDACTED**"
     assert result["incoming"][0]["raw"]["waybillNo"] == "**REDACTED**"
     assert result["incoming"][0]["raw"]["trackingNumber"] == "**REDACTED**"
-    assert result["incoming"][0]["raw"]["trackEventList"][0]["processCity"] == "**REDACTED**"
-    assert result["incoming"][0]["raw"]["trackEventList"][0]["processProvince"] == "**REDACTED**"
-    assert result["incoming"][0]["raw"]["trackEventList"][0]["processLocation"] == "**REDACTED**"
+    assert (
+        result["incoming"][0]["raw"]["trackEventList"][0]["processCity"]
+        == "**REDACTED**"
+    )
+    assert (
+        result["incoming"][0]["raw"]["trackEventList"][0]["processProvince"]
+        == "**REDACTED**"
+    )
+    assert (
+        result["incoming"][0]["raw"]["trackEventList"][0]["processLocation"]
+        == "**REDACTED**"
+    )
     assert result["incoming"][0]["raw"]["podImgList"] == "**REDACTED**"
     assert result["incoming"][0]["raw"]["sign"] == "**REDACTED**"
     # non-identifying fields survive, or the diagnostics would be useless

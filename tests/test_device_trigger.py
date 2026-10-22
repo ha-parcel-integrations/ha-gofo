@@ -1,9 +1,7 @@
 """Tests for GOFO Express device triggers."""
+
 from custom_components.gofo.const import DOMAIN
-from custom_components.gofo.device_trigger import (
-    TRIGGER_EVENTS,
-    async_get_triggers,
-)
+from custom_components.gofo.device_trigger import TRIGGER_EVENTS, async_get_triggers
 
 
 async def test_get_triggers_returns_all_four(hass):

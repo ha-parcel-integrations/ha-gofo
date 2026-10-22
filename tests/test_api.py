@@ -1,4 +1,5 @@
 """Tests for the GOFO Express API client — both transports, both envelopes."""
+
 import json
 from unittest.mock import AsyncMock, MagicMock
 
@@ -37,7 +38,7 @@ def _session_returning(status: int, body: object = None) -> MagicMock:
 
 
 @pytest.mark.parametrize(
-    "code,expected",
+    ("code", "expected"),
     [
         ("GFUS01011884214464", "US"),
         ("GFIT26085094392887", "IT"),
@@ -64,7 +65,9 @@ def test_extract_country_rejects_non_gofo_shapes():
 # ---------------------------------------------------------------------------
 
 
-def _transport_a_envelope(items: list[dict] | None = None, *, error: dict | None = None) -> dict:
+def _transport_a_envelope(
+    items: list[dict] | None = None, *, error: dict | None = None
+) -> dict:
     return {
         "success": 1,
         "code": 200,
@@ -73,7 +76,9 @@ def _transport_a_envelope(items: list[dict] | None = None, *, error: dict | None
         "failReason": None,
         "data": {
             "success": items or [],
-            "error": error if error is not None else ({} if items else {"errorCount": 1, "us": [US_CODE]}),
+            "error": error
+            if error is not None
+            else ({} if items else {"errorCount": 1, "us": [US_CODE]}),
         },
     }
 
@@ -96,7 +101,9 @@ async def test_transport_a_sends_the_same_zone_for_canada():
     item = {"waybillNo": "GFCA0001"}
     session = _session_returning(200, _transport_a_envelope([item]))
     await GOFOExpressApiClient(session).async_get_parcel("GFCA0001")
-    assert session.post.call_args[1]["headers"]["User-Time-Zone"] == "America/Los_Angeles"
+    assert (
+        session.post.call_args[1]["headers"]["User-Time-Zone"] == "America/Los_Angeles"
+    )
 
 
 async def test_transport_b_sends_no_time_zone_header():
@@ -218,7 +225,9 @@ async def test_unroutable_warning_is_tracked_independently_per_code(caplog):
 
 
 async def test_ca_code_routes_to_transport_a():
-    session = _session_returning(200, _transport_a_envelope([{"waybillNo": "GFCA0001"}], error={}))
+    session = _session_returning(
+        200, _transport_a_envelope([{"waybillNo": "GFCA0001"}], error={})
+    )
     client = GOFOExpressApiClient(session)
     await client.async_get_parcel("GFCA0001")
     assert "cnee-api" in session.post.call_args[0][0]
