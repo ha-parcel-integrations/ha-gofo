@@ -126,6 +126,7 @@ Standard HA removal applies: **Settings → Devices & Services → GOFO Express 
 | `sensor.gofo_express_next_delivery` | Earliest expected delivery moment across all active parcels (always unavailable today — see the note above) |
 | `sensor.gofo_express_awaiting_pickup` | Number of parcels currently waiting to be collected (`at_pickup_point`), full list under the `parcels` attribute |
 | `sensor.gofo_express_delivered_parcels` | Recently delivered parcels (see the retention option) |
+| `calendar.gofo_express_deliveries` | Read-only calendar of expected deliveries, no extra API calls |
 | `sensor.gofo_express_last_successful_update` | Diagnostic: when GOFO Express was last polled successfully |
 
 A delivered parcel moves from its per-parcel sensor to the delivered sensor automatically.
@@ -189,7 +190,7 @@ logger:
 
 - **A parcel shows `unknown`** — GOFO Express has not scanned it yet (their API answers `not_found` until the first scan), or the code is wrong. It will pick up automatically once scanned.
 - **US/CA scan times** are recorded in Pacific time. They carry the correct UTC offset, so they show correctly in your own timezone.
-- **A status logs "Unrecognised GOFO Express status"** — please [open an issue](https://github.com/ha-parcel-integrations/ha-gofo/issues/new) with the logged line so the mapping can be extended.
+- **A status logs "Unrecognised GOFO Express status"** — please [open an issue](https://github.com/ha-parcel-integrations/ha-gofo/issues/new?template=unrecognised_status.yml) with the logged line so the mapping can be extended.
 
 ## Related integrations
 
