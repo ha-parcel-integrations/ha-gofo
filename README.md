@@ -38,7 +38,7 @@ A custom Home Assistant integration that tracks your [GOFO Express](https://www.
 - Track any number of GOFO Express parcels by tracking code — no account needed
 - Covers all six GOFO markets (US, CA, IT, FR, ES, NL) — the country is read straight from the tracking code, nothing to select
 - Per-parcel sensor with the canonical status (`registered` / `in_transit` / `out_for_delivery` / `at_pickup_point` / `delivered` / `problem` / `unknown`), the carrier's own status text and a tracking deep-link
-- Summary sensors: incoming parcels, next delivery, parcels awaiting pickup, recently delivered parcels
+- Summary sensors: incoming parcels, next delivery, parcels en route to a pickup point, parcels awaiting pickup, recently delivered parcels
 - Read-only **Deliveries** calendar (see the note below — GOFO has never returned an expected-delivery window, so this is always empty for now)
 - `gofo.track_parcel` / `gofo.untrack_parcel` services, so a dashboard button can add a parcel
 - Events + device triggers for no-code automations (parcel registered, status changed, delivered)
@@ -124,6 +124,7 @@ Standard HA removal applies: **Settings → Devices & Services → GOFO Express 
 | `sensor.gofo_express_incoming_parcels` | Number of active tracked parcels, full list under the `parcels` attribute |
 | `sensor.gofo_express_parcel_<code>` | One per tracked parcel; state is the canonical status, attributes carry the full normalised parcel |
 | `sensor.gofo_express_next_delivery` | Earliest expected delivery moment across all active parcels (always unavailable today — see the note above) |
+| `sensor.gofo_express_en_route_to_pickup_point` | Incoming parcels on their way to a pickup point that have not arrived yet (stays 0 until GOFO reports a pickup route on a real parcel) |
 | `sensor.gofo_express_awaiting_pickup` | Number of parcels currently waiting to be collected (`at_pickup_point`), full list under the `parcels` attribute |
 | `sensor.gofo_express_delivered_parcels` | Recently delivered parcels (see the retention option) |
 | `calendar.gofo_express_deliveries` | Read-only calendar of expected deliveries, no extra API calls |

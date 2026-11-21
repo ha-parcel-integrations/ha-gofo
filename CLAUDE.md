@@ -70,6 +70,14 @@ logs a one-shot warning at add-time so this doesn't fail silently.
   one. `LS004` ("Arrived at pickup facility") is `AT_PICKUP_POINT`; its
   `processLocation` is a city, not a named pickup point, so `pickup_point`
   stays `None` even for this status.
+- **`pickup` is sticky; the carrier has no route field.** GOFO sends no
+  structured destination or delivery-type field, so `pickup` is
+  `is_pickup(None, status, event_statuses)`: true once any returned event maps
+  to `AT_PICKUP_POINT` (`LS004`), and it stays true after collection. Since
+  `pickup_point` is never named, it is always `None`. Both pickup sensors
+  exist: `awaiting_pickup` and `en_route_to_pickup_point`. The latter reads 0
+  until a real parcel shows a pickup route before arrival, which has not
+  happened yet, so no parcel is ever counted en route today.
 - **Transport A's offset stamp is a lie; read the clock, not the label.**
   `cnee-api` converts every `processDate`/`createTime` clock to whatever
   `User-Time-Zone` it is sent but always stamps the result `-0700`. The same
@@ -100,6 +108,11 @@ logs a one-shot warning at add-time so this doesn't fail silently.
 - **`trackEventList` is newest-first on both transports.** `build_history()`
   reverses it to the suite's oldest-to-newest contract — this is the one
   ordering trap the research doc called out explicitly.
+- **No delivery window.** The contract derives
+  `planned_*` through `planned_window`; here they stay `None` because no
+  parcel on any market has ever carried an expected-delivery time, so there is
+  no format to build the shape on. `planned_for_status` is applied so the
+  fields are emptied correctly the day an ETA is wired up.
 - **No delivery window, ever — but watch for it.** `estimatedArrivalTime`
   (transport A) and `expectedDeliveryTime`/`edtStartTime`/`edtEndTime`
   (transport B) were null on every parcel observed on any market.

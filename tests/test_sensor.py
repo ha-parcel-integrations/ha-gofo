@@ -7,6 +7,7 @@ from custom_components.gofo.const import ParcelStatus
 from custom_components.gofo.sensor import (
     GOFOExpressAwaitingPickupSensor,
     GOFOExpressDeliveredParcelsSensor,
+    GOFOExpressEnRouteToPickupPointSensor,
     GOFOExpressIncomingParcelsSensor,
     GOFOExpressLastUpdateSensor,
     GOFOExpressNextDeliverySensor,
@@ -69,12 +70,12 @@ def test_parcel_sensor_missing_barcode():
 def test_next_delivery_picks_earliest():
     coordinator = _coordinator(
         [
-            _parcel("A", planned_from="2026-05-02T10:00:00Z"),
-            _parcel("B", planned_from="2026-05-01T10:00:00Z"),
+            _parcel("A", planned_from="2099-05-02T10:00:00Z"),
+            _parcel("B", planned_from="2099-05-01T10:00:00Z"),
         ]
     )
     sensor = GOFOExpressNextDeliverySensor(coordinator, _entry())
-    assert sensor.native_value == datetime(2026, 5, 1, 10, 0, tzinfo=UTC)
+    assert sensor.native_value == datetime(2099, 5, 1, 10, 0, tzinfo=UTC)
     assert sensor.extra_state_attributes["barcode"] == "B"
 
 
@@ -88,7 +89,7 @@ def test_next_delivery_skips_unparseable_moment():
     coordinator = _coordinator(
         [
             _parcel("A", planned_from="not-a-date"),
-            _parcel("B", planned_from="2026-05-01T10:00:00Z"),
+            _parcel("B", planned_from="2099-05-01T10:00:00Z"),
         ]
     )
     sensor = GOFOExpressNextDeliverySensor(coordinator, _entry())
@@ -131,3 +132,28 @@ def test_awaiting_pickup_counts_rerouted_parcel_without_pickup_flag():
     )
     assert sensor.native_value == 1
     assert sensor.extra_state_attributes["parcels"] == [rerouted]
+
+
+def test_next_delivery_skips_a_window_that_has_ended():
+    coordinator = _coordinator(
+        [
+            _parcel("OLD", planned_from="2020-05-01T10:00:00Z"),
+            _parcel("NEW", planned_from="2099-05-01T10:00:00Z"),
+        ]
+    )
+    sensor = GOFOExpressNextDeliverySensor(coordinator, _entry())
+    assert sensor.extra_state_attributes["barcode"] == "NEW"
+
+
+def test_en_route_to_pickup_point_excludes_arrived_and_returning():
+    coordinator = _coordinator(
+        [
+            _parcel("EN", status=ParcelStatus.IN_TRANSIT, pickup=True),
+            _parcel("AT", status=ParcelStatus.AT_PICKUP_POINT, pickup=True),
+            _parcel("RET", status=ParcelStatus.RETURNING, pickup=True),
+            _parcel("HOME"),
+        ]
+    )
+    sensor = GOFOExpressEnRouteToPickupPointSensor(coordinator, _entry())
+    assert sensor.native_value == 1
+    assert sensor.extra_state_attributes["parcels"][0]["barcode"] == "EN"
