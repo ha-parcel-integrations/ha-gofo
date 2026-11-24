@@ -23,6 +23,7 @@ TO_REDACT = {
     "barcode",
     "sender",
     "receiver",
+    "contents",
     "url",
     # carrier payload fields — both transports
     "waybillNo",

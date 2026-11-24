@@ -41,6 +41,7 @@ A custom Home Assistant integration that tracks your [GOFO Express](https://www.
 - Summary sensors: incoming parcels, next delivery, parcels en route to a pickup point, parcels awaiting pickup, recently delivered parcels
 - Read-only **Deliveries** calendar (see the note below — GOFO has never returned an expected-delivery window, so this is always empty for now)
 - `gofo.track_parcel` / `gofo.untrack_parcel` services, so a dashboard button can add a parcel
+- An optional `contents` note per parcel (`gofo.update_contents`, or the `contents` field on `gofo.track_parcel`), stored locally; it titles the calendar event and shows on the next-delivery sensor
 - Events + device triggers for no-code automations (parcel registered, status changed, delivered)
 - Opt-in per-parcel status history
 - Manual refresh button and a diagnostic last-update sensor
@@ -165,8 +166,11 @@ Every payload is the full normalised parcel plus the hub's `device_id`. Events a
 
 | Service | Fields | Description |
 |---|---|---|
-| `gofo.track_parcel` | `tracking_code` | Start tracking a parcel |
+| `gofo.track_parcel` | `tracking_code`, `contents` (optional) | Start tracking a parcel |
 | `gofo.untrack_parcel` | `tracking_code` | Stop tracking a parcel |
+| `gofo.update_contents` | `tracking_code`, `contents` | Set, replace or clear (empty text) a note on what is in a parcel |
+
+The `contents` text is stored locally, never sent to GOFO Express, and fills the parcel's `contents` field; it titles the parcel's calendar event and shows on the next-delivery sensor.
 
 ## Examples
 
